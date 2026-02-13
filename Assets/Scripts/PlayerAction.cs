@@ -6,7 +6,6 @@ public class PlayerAction : MonoBehaviour
 {
     public GameObject blockPrefab;
     public WorldManagerScript worldManager; 
-    // Raycast to get the first solid object hit
     public RaycastHit? GetHit(float maxDistance = 100f)
     {
         Ray ray = new Ray(transform.position, transform.forward);
@@ -14,10 +13,10 @@ public class PlayerAction : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit, maxDistance))
         {
-            return hit; // Return the RaycastHit
+            return hit; 
         }
 
-        return null; // Nothing hit
+        return null; 
     }
 
 
