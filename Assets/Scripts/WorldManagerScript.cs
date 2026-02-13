@@ -1,11 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
+using System.Linq;
+
+
 
 [System.Serializable]
 public class BlockData
 {
-    public Vector3 position;
+    public Vector3Int position;  
     public string blockType;
 }
 
@@ -17,107 +20,175 @@ public class PlayerData
 }
 
 [System.Serializable]
-public class WorldData
+public class WorldSaveData
 {
-    public List<BlockData> blocks = new List<BlockData>();
+    public int seed;
+
+    // Delta
+    public List<BlockData> placedBlocks = new();
+    public List<BlockData> removedBlocks = new();
+
     public PlayerData player;
 }
 
 public class WorldManagerScript : MonoBehaviour
 {
-    public GameObject[] allPrefabs; // Assign all block prefabs in Inspector
-    public GameObject player;       // Assign the player GameObject in Inspector
-
+    public GameObject[] allPrefabs;
+    public GameObject player;
+    public WorldGenerator generator; 
     private string savePath;
+
+    private readonly Dictionary<Vector3Int, GameObject> worldBlocks = new();
+    private readonly Dictionary<Vector3Int, string> placed = new();
+    private readonly Dictionary<Vector3Int, string> removed = new();
+
+    private WorldSaveData loaded; 
 
     void Awake()
     {
-        savePath = Application.persistentDataPath + "/world.json";
-        LoadWorld();
+        savePath = Path.Combine(Application.persistentDataPath, "world.json");
+        loaded = LoadSaveFileOrCreate();
     }
 
-    // Save all blocks and player
-    public void SaveWorld()
+    void Start()
     {
-        WorldData world = new WorldData();
+        // 1) Regénère le monde de base
+        generator.Generate(loaded.seed, this);
 
-        // Save all blocks
-        GameObject[] allBlocks = GameObject.FindGameObjectsWithTag("Block");
-        foreach (GameObject block in allBlocks)
+        // 2) Applique le delta
+        ApplyDelta(loaded);
+
+        // 3) Player
+        if (loaded.player != null && player != null)
         {
-            BlockData data = new BlockData();
-            data.position = block.transform.position;
-            data.blockType = block.name.Replace("(Clone)", "");
-            world.blocks.Add(data);
+            player.transform.position = loaded.player.position;
+            player.transform.rotation = loaded.player.rotation;
         }
-
-        // Save player
-        if (player != null)
-        {
-            world.player = new PlayerData
-            {
-                position = player.transform.position,
-                rotation = player.transform.rotation
-            };
-        }
-
-        string json = JsonUtility.ToJson(world, true);
-        File.WriteAllText(savePath, json);
-        Debug.Log("World saved at: " + savePath);
     }
 
-    // Load all blocks and player
-    public void LoadWorld()
+    public void RegisterGeneratedBlock(GameObject go, Vector3Int pos)
     {
-        if (!File.Exists(savePath))
+        worldBlocks[pos] = go; 
+    }
+
+    public void PlayerPlacedBlock(Vector3 pos, string blockType)
+    {
+        Vector3Int p = Vector3Int.FloorToInt(pos);
+
+        removed.Remove(p);
+        placed[p] = blockType;
+
+        RemoveBlockVisual(p);
+
+        var prefab = FindPrefabByName(blockType);
+        if (prefab != null)
         {
-            Debug.Log("No world file found.");
+            var go = Instantiate(prefab, (Vector3)p, Quaternion.identity);
+            worldBlocks[p] = go;
+        }
+    }
+
+    public void PlayerDestroyedBlock(GameObject hitObject)
+    {
+        if (hitObject == null) return;
+        Vector3Int p = Vector3Int.FloorToInt(hitObject.transform.position);
+
+        if (placed.Remove(p))
+        {
+            RemoveBlockVisual(p);
             return;
         }
 
-        string json = File.ReadAllText(savePath);
-        WorldData world = JsonUtility.FromJson<WorldData>(json);
-
-        // Clear existing blocks first (optional)
-        foreach (GameObject block in GameObject.FindGameObjectsWithTag("Block"))
+        if (worldBlocks.TryGetValue(p, out var go) && go != null)
         {
-            Destroy(block);
+            string type = GetBlockTypeFromGO(go);
+            removed[p] = type;
         }
 
-        // Load blocks
-        foreach (BlockData data in world.blocks)
+        RemoveBlockVisual(p);
+    }
+
+    private void RemoveBlockVisual(Vector3Int pos)
+    {
+        if (worldBlocks.TryGetValue(pos, out var go) && go != null)
         {
-            GameObject prefab = FindPrefabByName(data.blockType);
-            if (prefab != null)
+            Destroy(go);
+        }
+        worldBlocks.Remove(pos);
+    }
+
+    public void SaveWorld()
+    {
+        var placedList = new List<BlockData>();
+        foreach (var kv in placed)
+            placedList.Add(new BlockData { position = kv.Key, blockType = kv.Value });
+
+        var removedList = new List<BlockData>();
+        foreach (var kv in removed)
+            removedList.Add(new BlockData { position = kv.Key, blockType = kv.Value });
+
+        var save = new WorldSaveData
+        {
+            seed = loaded.seed,
+            placedBlocks = placedList,
+            removedBlocks = removedList,
+            player = (player == null) ? null : new PlayerData
             {
-                Instantiate(prefab, data.position, Quaternion.identity);
+                position = player.transform.position,
+                rotation = player.transform.rotation
+            }
+        };
+
+        File.WriteAllText(savePath, JsonUtility.ToJson(save, true));
+    }
+
+    private WorldSaveData LoadSaveFileOrCreate()
+    {
+        if (!File.Exists(savePath))
+        {
+            return new WorldSaveData { seed = 12345 };
+        }
+
+        var json = File.ReadAllText(savePath);
+        var save = JsonUtility.FromJson<WorldSaveData>(json);
+
+        save.placedBlocks ??= new();
+        save.removedBlocks ??= new();
+        return save;
+    }
+
+    private void ApplyDelta(WorldSaveData save)
+    {
+        // 1) remove
+        foreach (var b in save.removedBlocks)
+        {
+            if (worldBlocks.TryGetValue(b.position, out var go) && go != null)
+            {
+                if (GetBlockTypeFromGO(go) == b.blockType)
+                    RemoveBlockVisual(b.position);
+            }
+            else
+            {
+                RemoveBlockVisual(b.position);
             }
         }
 
-        // Load player position and rotation
-        if (world.player != null && player != null)
-        {
-            player.transform.position = world.player.position;
-            player.transform.rotation = world.player.rotation;
-        }
-
-        Debug.Log("World loaded!");
+        // 2) place
+        foreach (var b in save.placedBlocks)
+            PlayerPlacedBlock(b.position, b.blockType);
     }
 
-    // Helper to find prefab by name
     private GameObject FindPrefabByName(string name)
     {
-        foreach (GameObject prefab in allPrefabs)
-        {
-            if (prefab.name == name)
-                return prefab;
-        }
+        foreach (var prefab in allPrefabs)
+            if (prefab != null && prefab.name == name) return prefab;
         return null;
     }
 
-    // Automatically save on exit
-    private void OnApplicationQuit()
+    private string GetBlockTypeFromGO(GameObject go)
     {
-        SaveWorld();
+        return go.name.Replace("(Clone)", "").Trim();
     }
+
+    private void OnApplicationQuit() => SaveWorld();
 }

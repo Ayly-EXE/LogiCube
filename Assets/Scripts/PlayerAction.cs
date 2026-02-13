@@ -5,7 +5,7 @@ using UnityEngine;
 public class PlayerAction : MonoBehaviour
 {
     public GameObject blockPrefab;
-
+    public WorldManagerScript worldManager; 
     // Raycast to get the first solid object hit
     public RaycastHit? GetHit(float maxDistance = 100f)
     {
@@ -52,7 +52,8 @@ public class PlayerAction : MonoBehaviour
             if (hit.HasValue)
             {
                 Vector3 blockPos = GetBlockPlacementPosition(hit.Value);
-                Instantiate(blockPrefab, blockPos, Quaternion.identity);
+                //Instantiate(blockPrefab, blockPos, Quaternion.identity);
+                worldManager.PlayerPlacedBlock(blockPos, blockPrefab.name);
                 Debug.Log("Block placed at: " + blockPos);
             }
             else
@@ -70,7 +71,8 @@ public class PlayerAction : MonoBehaviour
 
                 if (hitObject.CompareTag("Block"))
                 {
-                    Destroy(hitObject);
+                    //Destroy(hitObject);
+                    worldManager.PlayerDestroyedBlock(hitObject);
                     Debug.Log("Block destroyed: " + hitObject.name);
                 }
                 else
