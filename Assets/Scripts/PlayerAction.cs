@@ -5,7 +5,7 @@ using UnityEngine;
 public class PlayerAction : MonoBehaviour
 {
     public GameObject blockPrefab;
-    public WorldManagerScript worldManager; 
+    public WorldManagerScript worldManager;
     public RaycastHit? GetHit(float maxDistance = 100f)
     {
         Ray ray = new Ray(transform.position, transform.forward);
@@ -13,10 +13,10 @@ public class PlayerAction : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit, maxDistance))
         {
-            return hit; 
+            return hit;
         }
 
-        return null; 
+        return null;
     }
 
 
@@ -60,7 +60,7 @@ public class PlayerAction : MonoBehaviour
                 Debug.Log("Nothing hit");
             }
         }
-    
+
         if (Input.GetMouseButtonDown(1))
         {
             RaycastHit? hit = GetHit();
@@ -86,5 +86,5 @@ public class PlayerAction : MonoBehaviour
             }
         }
     }
-    
+
 }

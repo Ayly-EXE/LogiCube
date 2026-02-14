@@ -8,7 +8,7 @@ using System.Linq;
 [System.Serializable]
 public class BlockData
 {
-    public Vector3Int position;  
+    public Vector3Int position;
     public string blockType;
 }
 
@@ -35,14 +35,14 @@ public class WorldManagerScript : MonoBehaviour
 {
     public GameObject[] allPrefabs;
     public GameObject player;
-    public WorldGenerator generator; 
+    public WorldGenerator generator;
     private string savePath;
 
     private readonly Dictionary<Vector3Int, GameObject> worldBlocks = new();
     private readonly Dictionary<Vector3Int, string> placed = new();
     private readonly Dictionary<Vector3Int, string> removed = new();
 
-    private WorldSaveData loaded; 
+    private WorldSaveData loaded;
 
     void Awake()
     {
@@ -68,7 +68,7 @@ public class WorldManagerScript : MonoBehaviour
 
     public void RegisterGeneratedBlock(GameObject go, Vector3Int pos)
     {
-        worldBlocks[pos] = go; 
+        worldBlocks[pos] = go;
     }
 
     public void PlayerPlacedBlock(Vector3 pos, string blockType)

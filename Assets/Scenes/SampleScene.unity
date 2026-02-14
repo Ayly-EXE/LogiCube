@@ -769,6 +769,7 @@ MonoBehaviour:
   allPrefabs:
   - {fileID: 2163023345228775227, guid: 3badac6a91ae2ce44951cef809d15bad, type: 3}
   - {fileID: 2163023345228775227, guid: 277f8f25cee536147a02f66c6a12f00d, type: 3}
+  - {fileID: 4083437359705976096, guid: 98839f3cc3bd74ca7aa2e2e891d8d2ce, type: 3}
   player: {fileID: 1361358934}
   generator: {fileID: 1603202861}
 --- !u!4 &1815888935
