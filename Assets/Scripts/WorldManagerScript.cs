@@ -2,9 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 using System.Linq;
-
-
-
 [System.Serializable]
 public class BlockData
 {
@@ -23,7 +20,6 @@ public class PlayerData
 public class WorldSaveData
 {
     public int seed;
-
     // Delta
     public List<BlockData> placedBlocks = new();
     public List<BlockData> removedBlocks = new();
@@ -31,127 +27,141 @@ public class WorldSaveData
     public PlayerData player;
 }
 
+
+
+
 public class WorldManagerScript : MonoBehaviour
 {
-    public GameObject[] allPrefabs;
-    public GameObject player;
+    [Header("Références")]
     public WorldGenerator generator;
-    private string savePath;
+    public Material chunkMaterial;
+    public GameObject player;
 
-    private readonly Dictionary<Vector3Int, GameObject> worldBlocks = new();
-    private readonly Dictionary<Vector3Int, string> placed = new();
-    private readonly Dictionary<Vector3Int, string> removed = new();
+    [Header("Materiaux par type de bloc")]
+    public Material dirtMaterial;
+    public Material stoneMaterial;
 
-    private WorldSaveData loaded;
+    [Header("Save")]
+    public string savePath => Path.Combine(Application.persistentDataPath, "save.json");
+    private int seed;
+    private Dictionary<Vector3Int, BlockType> blocks = new();
 
-    void Awake()
-    {
-        savePath = Path.Combine(Application.persistentDataPath, "world.json");
-        loaded = LoadSaveFileOrCreate();
-    }
+    private GameObject chunkGO;
 
     void Start()
     {
-        // 1) Regénère le monde de base
-        generator.Generate(loaded.seed, this);
+        var save = LoadOrCreate();
+        seed = save.seed;
+        // 1) Génération de base
+        blocks = generator.Generate(save.seed);
 
-        // 2) Applique le delta
-        ApplyDelta(loaded);
+        // 2) Applique les modifications sauvegardées
+        ApplyDelta(save);
 
-        // 3) Player
-        if (loaded.player != null && player != null)
+        // 3) Construit le mesh initial
+        RebuildChunk();
+
+        // 4) Position du joueur
+        if (save.player != null && player != null)
         {
-            player.transform.position = loaded.player.position;
-            player.transform.rotation = loaded.player.rotation;
+            player.transform.position = save.player.position;
+            player.transform.rotation = save.player.rotation;
         }
     }
 
-    public void RegisterGeneratedBlock(GameObject go, Vector3Int pos)
+
+    public void PlaceBlock(Vector3 worldPos, BlockType type)
     {
-        worldBlocks[pos] = go;
+        var p = Vector3Int.FloorToInt(worldPos);
+        blocks[p] = type;
+        RebuildChunk();
     }
 
-    public void PlayerPlacedBlock(Vector3 pos, string blockType)
+    public void DestroyBlock(Vector3 worldPos)
     {
-        Vector3Int p = Vector3Int.FloorToInt(pos);
-
-        removed.Remove(p);
-        placed[p] = blockType;
-
-        RemoveBlockVisual(p);
-
-        var prefab = FindPrefabByName(blockType);
-        if (prefab != null)
-        {
-            var go = Instantiate(prefab, (Vector3)p, Quaternion.identity);
-            worldBlocks[p] = go;
-        }
+        var p = Vector3Int.FloorToInt(worldPos);
+        if (!blocks.ContainsKey(p)) return;
+        blocks.Remove(p);
+        RebuildChunk();
     }
 
-    public void PlayerDestroyedBlock(GameObject hitObject)
+    // ─────────────────────────────────────────
+    //  Culling → Mesh → GameObject
+    // ─────────────────────────────────────────
+
+    private void RebuildChunk()
     {
-        if (hitObject == null) return;
-        Vector3Int p = Vector3Int.FloorToInt(hitObject.transform.position);
-
-        if (placed.Remove(p))
+        // Étape 1 — Face Culling 
+        var visibleFaces = new Dictionary<Vector3Int, List<FaceDirection>>();
+        foreach (var (pos, type) in blocks)
         {
-            RemoveBlockVisual(p);
-            return;
+            if (!type.IsSolid()) continue;
+            var faces = FaceCuller.GetVisibleFaces(pos, blocks);
+            if (faces.Count > 0)
+                visibleFaces[pos] = faces;
         }
 
-        if (worldBlocks.TryGetValue(p, out var go) && go != null)
-        {
-            string type = GetBlockTypeFromGO(go);
-            removed[p] = type;
-        }
+        // Étape 2 — Mesh avec sub-meshes
+        var mesh = ChunkMeshBuilder.Build(visibleFaces, blocks, out var subMeshOrder);
 
-        RemoveBlockVisual(p);
+        // Étape 3 — Associe un material a chaque sub-mesh
+        var materials = new Material[subMeshOrder.Length];
+        for (int i = 0; i < subMeshOrder.Length; i++)
+            materials[i] = GetMaterial(subMeshOrder[i]);
+
+        ApplyMeshToChunk(mesh, materials);
     }
 
-    private void RemoveBlockVisual(Vector3Int pos)
+    private void ApplyMeshToChunk(Mesh mesh, Material[] materials)
     {
-        if (worldBlocks.TryGetValue(pos, out var go) && go != null)
+        if (chunkGO == null)
         {
-            Destroy(go);
+            chunkGO = new GameObject("Chunk");
+            chunkGO.AddComponent<MeshFilter>();
+            chunkGO.AddComponent<MeshRenderer>();
+            chunkGO.AddComponent<MeshCollider>();
         }
-        worldBlocks.Remove(pos);
+
+        chunkGO.GetComponent<MeshFilter>().mesh = mesh;
+        chunkGO.GetComponent<MeshRenderer>().materials = materials;
+        chunkGO.GetComponent<MeshCollider>().sharedMesh = mesh;
     }
 
     public void SaveWorld()
     {
-        var placedList = new List<BlockData>();
-        foreach (var kv in placed)
-            placedList.Add(new BlockData { position = kv.Key, blockType = kv.Value });
+        var save = new WorldSaveData { seed = seed };
 
-        var removedList = new List<BlockData>();
-        foreach (var kv in removed)
-            removedList.Add(new BlockData { position = kv.Key, blockType = kv.Value });
+        // On regénère pour comparer avec la base
+        var baseBlocks = generator.Generate(seed);
 
-        var save = new WorldSaveData
+        foreach (var (pos, type) in blocks)
         {
-            seed = loaded.seed,
-            placedBlocks = placedList,
-            removedBlocks = removedList,
-            player = (player == null) ? null : new PlayerData
+            if (!baseBlocks.ContainsKey(pos))
+                save.placedBlocks.Add(new BlockData { position = pos, blockType = type.ToString() });
+        }
+
+        foreach (var (pos, type) in baseBlocks)
+        {
+            if (!blocks.ContainsKey(pos))
+                save.removedBlocks.Add(new BlockData { position = pos, blockType = type.ToString() });
+        }
+
+        if (player != null)
+            save.player = new PlayerData
             {
                 position = player.transform.position,
                 rotation = player.transform.rotation
-            }
-        };
+            };
 
         File.WriteAllText(savePath, JsonUtility.ToJson(save, true));
     }
 
-    private WorldSaveData LoadSaveFileOrCreate()
+    private WorldSaveData LoadOrCreate()
     {
         if (!File.Exists(savePath))
-        {
-            return new WorldSaveData { seed = 12345 };
-        }
+            return new WorldSaveData { seed = Random.Range(0, 999999) };
 
-        var json = File.ReadAllText(savePath);
-        var save = JsonUtility.FromJson<WorldSaveData>(json);
-
+        var save = JsonUtility.FromJson<WorldSaveData>(File.ReadAllText(savePath));
         save.placedBlocks ??= new();
         save.removedBlocks ??= new();
         return save;
@@ -159,36 +169,22 @@ public class WorldManagerScript : MonoBehaviour
 
     private void ApplyDelta(WorldSaveData save)
     {
-        // 1) remove
         foreach (var b in save.removedBlocks)
-        {
-            if (worldBlocks.TryGetValue(b.position, out var go) && go != null)
-            {
-                if (GetBlockTypeFromGO(go) == b.blockType)
-                    RemoveBlockVisual(b.position);
-            }
-            else
-            {
-                RemoveBlockVisual(b.position);
-            }
-        }
+            blocks.Remove(b.position);
 
-        // 2) place
         foreach (var b in save.placedBlocks)
-            PlayerPlacedBlock(b.position, b.blockType);
+            blocks[b.position] = System.Enum.Parse<BlockType>(b.blockType);
     }
 
-    private GameObject FindPrefabByName(string name)
+    private Material GetMaterial(BlockType type) => type switch
     {
-        foreach (var prefab in allPrefabs)
-            if (prefab != null && prefab.name == name) return prefab;
-        return null;
-    }
+        BlockType.Dirt => dirtMaterial,
+        BlockType.Stone => stoneMaterial,
+        _ => dirtMaterial
+    };
 
-    private string GetBlockTypeFromGO(GameObject go)
+    void OnApplicationQuit()
     {
-        return go.name.Replace("(Clone)", "").Trim();
+        SaveWorld();
     }
-
-    private void OnApplicationQuit() => SaveWorld();
 }

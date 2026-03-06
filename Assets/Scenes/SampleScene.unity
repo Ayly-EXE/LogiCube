@@ -610,7 +610,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4db7f3549543f714197b288f6f5833d6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  blockPrefab: {fileID: 2163023345228775227, guid: 3badac6a91ae2ce44951cef809d15bad, type: 3}
   worldManager: {fileID: 1815888934}
 --- !u!1 &1603202856
 GameObject:
@@ -732,8 +731,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60cff8564da42aa40a4471dfba23e1a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dirtBlock: {fileID: 2163023345228775227, guid: 3badac6a91ae2ce44951cef809d15bad, type: 3}
-  stoneBlock: {fileID: 2163023345228775227, guid: 277f8f25cee536147a02f66c6a12f00d, type: 3}
   chunkSize: 32
   noiseScale: 0.1
   terrainHeight: 10
@@ -766,12 +763,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 282b362ea8d2a1b459ae925dfe361626, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  allPrefabs:
-  - {fileID: 2163023345228775227, guid: 3badac6a91ae2ce44951cef809d15bad, type: 3}
-  - {fileID: 2163023345228775227, guid: 277f8f25cee536147a02f66c6a12f00d, type: 3}
-  - {fileID: 4083437359705976096, guid: 98839f3cc3bd74ca7aa2e2e891d8d2ce, type: 3}
-  player: {fileID: 1361358934}
   generator: {fileID: 1603202861}
+  chunkMaterial: {fileID: 0}
+  player: {fileID: 1361358934}
+  dirtMaterial: {fileID: 2100000, guid: 5be225ada7c7f7d43aa11e52fa112f45, type: 2}
+  stoneMaterial: {fileID: 2100000, guid: fd6223abd4126944abd3caa61fa9a3ee, type: 2}
+  savePath: save.json
 --- !u!4 &1815888935
 Transform:
   m_ObjectHideFlags: 0
