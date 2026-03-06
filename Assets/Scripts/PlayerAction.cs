@@ -1,34 +1,29 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerAction : MonoBehaviour
 {
     public WorldManagerScript worldManager;
+
+    // Envoie un rayon depuis la caméra vers l'avant
     public RaycastHit? GetHit(float maxDistance = 100f)
     {
         Ray ray = new Ray(transform.position, transform.forward);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit, maxDistance))
-        {
+        if (Physics.Raycast(ray, out RaycastHit hit, maxDistance))
             return hit;
-        }
-
         return null;
     }
 
-
+    // Trouve la position du bloc à placer (face adjacente au bloc touché)
     public Vector3 GetBlockPlacementPosition(RaycastHit hit)
     {
         Vector3 insideBlock = hit.point - hit.normal * 0.5f;
         Vector3Int hitBlockPos = Vector3Int.FloorToInt(insideBlock);
-
         return hitBlockPos + Vector3Int.RoundToInt(hit.normal);
     }
 
     void Update()
     {
+        // Clic gauche = poser un bloc
         if (Input.GetMouseButtonDown(0))
         {
             RaycastHit? hit = GetHit();
@@ -39,6 +34,7 @@ public class PlayerAction : MonoBehaviour
             }
         }
 
+        // Clic droit = détruire un bloc
         if (Input.GetMouseButtonDown(1))
         {
             RaycastHit? hit = GetHit();

@@ -1,67 +1,52 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
-using System.Linq;
-[System.Serializable]
-public class BlockData
-{
-    public Vector3Int position;
-    public string blockType;
-}
 
-[System.Serializable]
-public class PlayerData
-{
-    public Vector3 position;
-    public Quaternion rotation;
-}
-
+// --- Données de sauvegarde ---
+[System.Serializable] public class BlockData { public Vector3Int position; public string blockType; }
+[System.Serializable] public class PlayerData { public Vector3 position; public Quaternion rotation; }
 [System.Serializable]
 public class WorldSaveData
 {
     public int seed;
-    // Delta
     public List<BlockData> placedBlocks = new();
     public List<BlockData> removedBlocks = new();
-
     public PlayerData player;
 }
-
-
-
 
 public class WorldManagerScript : MonoBehaviour
 {
     [Header("Références")]
     public WorldGenerator generator;
-    public Material chunkMaterial;
     public GameObject player;
 
-    [Header("Materiaux par type de bloc")]
+    [Header("Matériaux")]
     public Material dirtMaterial;
     public Material stoneMaterial;
 
-    [Header("Save")]
-    public string savePath => Path.Combine(Application.persistentDataPath, "save.json");
-    private int seed;
     private Dictionary<Vector3Int, BlockType> blocks = new();
+    private int seed;
 
     private GameObject chunkGO;
 
+    private string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
+
+    // ──────────────────────────────────────────────
     void Start()
     {
         var save = LoadOrCreate();
         seed = save.seed;
-        // 1) Génération de base
-        blocks = generator.Generate(save.seed);
 
-        // 2) Applique les modifications sauvegardées
+        // 1) On génère le monde de base avec la seed
+        blocks = generator.Generate(seed);
+
+        // 2) On remet les modifications du joueur (blocs posés/détruits)
         ApplyDelta(save);
 
-        // 3) Construit le mesh initial
+        // 3) On construit le rendu 3D
         RebuildChunk();
 
-        // 4) Position du joueur
+        // 4) On replace le joueur où il était
         if (save.player != null && player != null)
         {
             player.transform.position = save.player.position;
@@ -69,6 +54,9 @@ public class WorldManagerScript : MonoBehaviour
         }
     }
 
+    // ──────────────────────────────────────────────
+    //  Actions du joueur
+    // ──────────────────────────────────────────────
 
     public void PlaceBlock(Vector3 worldPos, BlockType type)
     {
@@ -85,13 +73,9 @@ public class WorldManagerScript : MonoBehaviour
         RebuildChunk();
     }
 
-    // ─────────────────────────────────────────
-    //  Culling → Mesh → GameObject
-    // ─────────────────────────────────────────
-
     private void RebuildChunk()
     {
-        // Étape 1 — Face Culling 
+        // Étape 1 : Face Culling — on trouve quelles faces sont visibles
         var visibleFaces = new Dictionary<Vector3Int, List<FaceDirection>>();
         foreach (var (pos, type) in blocks)
         {
@@ -101,19 +85,15 @@ public class WorldManagerScript : MonoBehaviour
                 visibleFaces[pos] = faces;
         }
 
-        // Étape 2 — Mesh avec sub-meshes
+        // Étape 2 : Mesh Builder — on construit le mesh avec seulement ces faces
         var mesh = ChunkMeshBuilder.Build(visibleFaces, blocks, out var subMeshOrder);
 
-        // Étape 3 — Associe un material a chaque sub-mesh
+        // Étape 3 : On associe un matériau à chaque type de bloc
         var materials = new Material[subMeshOrder.Length];
         for (int i = 0; i < subMeshOrder.Length; i++)
             materials[i] = GetMaterial(subMeshOrder[i]);
 
-        ApplyMeshToChunk(mesh, materials);
-    }
-
-    private void ApplyMeshToChunk(Mesh mesh, Material[] materials)
-    {
+        // Étape 4 : On applique le tout à un seul GameObject
         if (chunkGO == null)
         {
             chunkGO = new GameObject("Chunk");
@@ -121,30 +101,36 @@ public class WorldManagerScript : MonoBehaviour
             chunkGO.AddComponent<MeshRenderer>();
             chunkGO.AddComponent<MeshCollider>();
         }
-
         chunkGO.GetComponent<MeshFilter>().mesh = mesh;
         chunkGO.GetComponent<MeshRenderer>().materials = materials;
         chunkGO.GetComponent<MeshCollider>().sharedMesh = mesh;
     }
 
+    private Material GetMaterial(BlockType type) => type switch
+    {
+        BlockType.Dirt => dirtMaterial,
+        BlockType.Stone => stoneMaterial,
+        _ => dirtMaterial
+    };
+
+    // ──────────────────────────────────────────────
+    //  Sauvegarde
+    // ──────────────────────────────────────────────
+
     public void SaveWorld()
     {
         var save = new WorldSaveData { seed = seed };
-
-        // On regénère pour comparer avec la base
         var baseBlocks = generator.Generate(seed);
 
+        // Ce que le joueur a ajouté
         foreach (var (pos, type) in blocks)
-        {
             if (!baseBlocks.ContainsKey(pos))
                 save.placedBlocks.Add(new BlockData { position = pos, blockType = type.ToString() });
-        }
 
+        // Ce que le joueur a détruit
         foreach (var (pos, type) in baseBlocks)
-        {
             if (!blocks.ContainsKey(pos))
                 save.removedBlocks.Add(new BlockData { position = pos, blockType = type.ToString() });
-        }
 
         if (player != null)
             save.player = new PlayerData
@@ -153,15 +139,15 @@ public class WorldManagerScript : MonoBehaviour
                 rotation = player.transform.rotation
             };
 
-        File.WriteAllText(savePath, JsonUtility.ToJson(save, true));
+        File.WriteAllText(SavePath, JsonUtility.ToJson(save, true));
     }
 
     private WorldSaveData LoadOrCreate()
     {
-        if (!File.Exists(savePath))
+        if (!File.Exists(SavePath))
             return new WorldSaveData { seed = Random.Range(0, 999999) };
 
-        var save = JsonUtility.FromJson<WorldSaveData>(File.ReadAllText(savePath));
+        var save = JsonUtility.FromJson<WorldSaveData>(File.ReadAllText(SavePath));
         save.placedBlocks ??= new();
         save.removedBlocks ??= new();
         return save;
@@ -176,15 +162,5 @@ public class WorldManagerScript : MonoBehaviour
             blocks[b.position] = System.Enum.Parse<BlockType>(b.blockType);
     }
 
-    private Material GetMaterial(BlockType type) => type switch
-    {
-        BlockType.Dirt => dirtMaterial,
-        BlockType.Stone => stoneMaterial,
-        _ => dirtMaterial
-    };
-
-    void OnApplicationQuit()
-    {
-        SaveWorld();
-    }
+    void OnApplicationQuit() => SaveWorld();
 }
