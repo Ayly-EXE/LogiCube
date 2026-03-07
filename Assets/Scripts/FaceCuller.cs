@@ -1,6 +1,4 @@
 // ╔══════════════════════════════════════════════════════════════╗
-// ║  FACE CULLING — COPIER-COLLER                                ║
-// ║                                                              ║
 // ║  Théorie :                                                   ║
 // ║  Chaque bloc a 6 faces (haut, bas, gauche, droite,           ║
 // ║  devant, derrière). Si un voisin est collé contre une face,  ║

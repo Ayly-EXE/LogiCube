@@ -25,7 +25,6 @@ public class WorldGenerator : MonoBehaviour
 
                 for (int y = 0; y <= height; y++)
                 {
-                    // En dessous de y=3 c'est de la pierre, au dessus c'est de la terre
                     var type = (y > 3) ? BlockType.Dirt : BlockType.Stone;
                     blocks[new Vector3Int(x, y, z)] = type;
                 }
