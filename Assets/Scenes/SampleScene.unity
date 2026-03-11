@@ -731,9 +731,59 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60cff8564da42aa40a4471dfba23e1a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  chunkSize: 32
-  noiseScale: 0.1
-  terrainHeight: 10
+  chunkSize: 16
+  noiseScale: 0.04
+  terrainHeight: 25
+--- !u!1 &1750416617
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1750416619}
+  - component: {fileID: 1750416618}
+  m_Layer: 0
+  m_Name: ChunkManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1750416618
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1750416617}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b38a434170e45492590b7a109f898b64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  generator: {fileID: 1603202861}
+  player: {fileID: 1361358936}
+  dirtMaterial: {fileID: 2100000, guid: 5be225ada7c7f7d43aa11e52fa112f45, type: 2}
+  stoneMaterial: {fileID: 2100000, guid: fd6223abd4126944abd3caa61fa9a3ee, type: 2}
+  renderDistance: 6
+  chunksPerFrame: 2
+--- !u!4 &1750416619
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1750416617}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1815888933
 GameObject:
   m_ObjectHideFlags: 0
@@ -750,7 +800,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1815888934
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -764,11 +814,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   generator: {fileID: 1603202861}
-  chunkMaterial: {fileID: 0}
   player: {fileID: 1361358934}
   dirtMaterial: {fileID: 2100000, guid: 5be225ada7c7f7d43aa11e52fa112f45, type: 2}
   stoneMaterial: {fileID: 2100000, guid: fd6223abd4126944abd3caa61fa9a3ee, type: 2}
-  savePath: save.json
+  seed: 0
+  chunkGO: {fileID: 0}
 --- !u!4 &1815888935
 Transform:
   m_ObjectHideFlags: 0
@@ -793,3 +843,4 @@ SceneRoots:
   - {fileID: 1361358936}
   - {fileID: 550497744}
   - {fileID: 1815888935}
+  - {fileID: 1750416619}

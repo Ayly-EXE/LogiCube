@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class PlayerAction : MonoBehaviour
 {
-    public WorldManagerScript worldManager;
+    public ChunkManager worldManager;
 
     // Envoie un rayon depuis la caméra vers l'avant
     public RaycastHit? GetHit(float maxDistance = 100f)
@@ -23,7 +23,7 @@ public class PlayerAction : MonoBehaviour
 
     void Update()
     {
-        // Clic gauche = poser un bloc
+        // Clic gauche = poser un b∑loc
         if (Input.GetMouseButtonDown(0))
         {
             RaycastHit? hit = GetHit();

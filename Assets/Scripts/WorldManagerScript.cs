@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
-
+using System;
+/*
 // --- Données de sauvegarde ---
 [System.Serializable] public class BlockData { public Vector3Int position; public string blockType; }
 [System.Serializable] public class PlayerData { public Vector3 position; public Quaternion rotation; }
@@ -140,12 +141,14 @@ public class WorldManagerScript : MonoBehaviour
             };
 
         File.WriteAllText(SavePath, JsonUtility.ToJson(save, true));
+
+        Debug.Log(SavePath);
     }
 
     private WorldSaveData LoadOrCreate()
     {
         if (!File.Exists(SavePath))
-            return new WorldSaveData { seed = Random.Range(0, 999999) };
+            return new WorldSaveData { seed = UnityEngine.Random.Range(0, 999999) };
 
         var save = JsonUtility.FromJson<WorldSaveData>(File.ReadAllText(SavePath));
         save.placedBlocks ??= new();
@@ -164,3 +167,4 @@ public class WorldManagerScript : MonoBehaviour
 
     void OnApplicationQuit() => SaveWorld();
 }
+*/
