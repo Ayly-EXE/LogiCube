@@ -3,8 +3,34 @@ using UnityEngine;
 public class PlayerAction : MonoBehaviour
 {
     public WorldManagerScript worldManager;
-
     public BlockType selectedBlock = BlockType.Stone;
+    public CharacterController playerController;
+
+
+    public RaycastHit? GetHit(float maxDistance = 100f)
+    {
+        Vector3 origin = transform.position + transform.forward * 0.1f;
+        Ray ray = new Ray(origin, transform.forward);
+
+        RaycastHit[] hits = Physics.RaycastAll(ray, maxDistance);
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (RaycastHit hit in hits)
+        {
+            if (playerController != null)
+            {
+                Transform playerRoot = playerController.transform;
+
+                // Ignore tout ce qui appartient au joueur
+                if (hit.transform == playerRoot || hit.transform.IsChildOf(playerRoot))
+                    continue;
+            }
+
+            return hit;
+        }
+
+        return null;
+    }
 
     public void ChangeBlockType(BlockType newBlockType)
     {
@@ -12,44 +38,64 @@ public class PlayerAction : MonoBehaviour
         Debug.Log("Selected block type changed to: " + selectedBlock);
     }
 
-    // Envoie un rayon depuis la caméra vers l'avant
-    public RaycastHit? GetHit(float maxDistance = 100f)
+    public Vector3Int GetHitBlockPosition(RaycastHit hit)
     {
-        Ray ray = new Ray(transform.position, transform.forward);
-        if (Physics.Raycast(ray, out RaycastHit hit, maxDistance))
-            return hit;
-        return null;
+        return Vector3Int.FloorToInt(hit.point - hit.normal * 0.01f);
     }
 
-    // Trouve la position du bloc à placer (face adjacente au bloc touché)
-    public Vector3 GetBlockPlacementPosition(RaycastHit hit)
+    public Vector3Int GetBlockPlacementPosition(RaycastHit hit)
     {
-        Vector3 insideBlock = hit.point - hit.normal * 0.5f;
-        Vector3Int hitBlockPos = Vector3Int.FloorToInt(insideBlock);
+        Vector3Int hitBlockPos = GetHitBlockPosition(hit);
         return hitBlockPos + Vector3Int.RoundToInt(hit.normal);
+    }
+
+    public bool IsInsidePlayer(Vector3Int blockPos)
+    {
+        if (playerController == null) return false;
+
+        Bounds b = playerController.bounds;
+
+        Vector3 min = b.min + Vector3.one * 0.001f;
+        Vector3 max = b.max - Vector3.one * 0.001f;
+
+        for (int x = Mathf.FloorToInt(min.x); x <= Mathf.FloorToInt(max.x); x++)
+        {
+            for (int y = Mathf.FloorToInt(min.y); y <= Mathf.FloorToInt(max.y); y++)
+            {
+                for (int z = Mathf.FloorToInt(min.z); z <= Mathf.FloorToInt(max.z); z++)
+                {
+                    if (new Vector3Int(x, y, z) == blockPos)
+                        return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     void Update()
     {
-        // Clic droit = poser un bloc
         if (Input.GetMouseButtonDown(1))
         {
             RaycastHit? hit = GetHit();
             if (hit.HasValue)
             {
-                Vector3 placePos = GetBlockPlacementPosition(hit.Value);
-                worldManager.PlaceBlock(placePos, selectedBlock);
+                Debug.Log("Hit: " + hit.Value.collider.name);
+
+                Vector3Int placePos = GetBlockPlacementPosition(hit.Value);
+
+                if (!IsInsidePlayer(placePos))
+                    worldManager.PlaceBlock(placePos, selectedBlock);
             }
         }
 
-        // Clic gauche = détruire un bloc
         if (Input.GetMouseButtonDown(0))
         {
             RaycastHit? hit = GetHit();
             if (hit.HasValue)
             {
-                Vector3 insideBlock = hit.Value.point - hit.Value.normal * 0.5f;
-                worldManager.DestroyBlock(insideBlock);
+                Vector3Int hitBlockPos = GetHitBlockPosition(hit.Value);
+                worldManager.DestroyBlock(hitBlockPos);
             }
         }
     }

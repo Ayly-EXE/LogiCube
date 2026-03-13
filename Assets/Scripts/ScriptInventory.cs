@@ -30,7 +30,7 @@ public class ScriptInventory : MonoBehaviour
     public List<BlockSpriteEntry> blockSpritesList = new();
     private Dictionary<BlockType, Sprite> blockSprites;
 
-    
+
 
     void Awake()
     {
@@ -70,7 +70,7 @@ public class ScriptInventory : MonoBehaviour
                 Image blockImg = blockImgGO.AddComponent<Image>();
                 blockImg.sprite = sprite;
             }
-    }
+        }
 
 
 
@@ -78,7 +78,6 @@ public class ScriptInventory : MonoBehaviour
 
         UpdateHotbarSelectedUI();
     }
-
 
 
     void Update()
@@ -109,5 +108,5 @@ public class ScriptInventory : MonoBehaviour
             playerAction.ChangeBlockType(hotbar_slots[selectedSlot]);
     }
 
-    
+
 }
