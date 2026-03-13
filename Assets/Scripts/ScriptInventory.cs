@@ -7,7 +7,7 @@ public class ScriptInventory : MonoBehaviour
     public Sprite slotNormal;
     public Sprite slotSelected;
 
-    public PlayerAction playerAction;
+    
 
     private List<Image> slots = new();
     private int selectedSlot = 0;
@@ -26,13 +26,15 @@ public class ScriptInventory : MonoBehaviour
         public Sprite sprite;
     }
 
+    private PlayerAction playerAction;
+
 
     public List<BlockSpriteEntry> blockSpritesList = new();
     private Dictionary<BlockType, Sprite> blockSprites;
 
     
 
-    void Awake()
+    void Start()
     {
 
         playerAction = FindObjectOfType<PlayerAction>();
@@ -70,9 +72,7 @@ public class ScriptInventory : MonoBehaviour
                 Image blockImg = blockImgGO.AddComponent<Image>();
                 blockImg.sprite = sprite;
             }
-    }
-
-
+        }
 
         playerAction.ChangeBlockType(hotbar_slots[0]);
 
