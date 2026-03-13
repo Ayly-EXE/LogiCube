@@ -107,7 +107,7 @@ public class WorldManagerScript : MonoBehaviour
         if (chunkGO == null)
         {
             chunkGO = new GameObject("Chunk");
-            chunkGO.transform.SetParent(transform); // optional but recommended
+            chunkGO.transform.SetParent(transform);
 
             chunkGO.AddComponent<MeshFilter>();
             chunkGO.AddComponent<MeshRenderer>();

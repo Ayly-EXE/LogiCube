@@ -4,6 +4,14 @@ public class PlayerAction : MonoBehaviour
 {
     public WorldManagerScript worldManager;
 
+    public BlockType selectedBlock = BlockType.Stone;
+
+    public void ChangeBlockType(BlockType newBlockType)
+    {
+        selectedBlock = newBlockType;
+        Debug.Log("Selected block type changed to: " + selectedBlock);
+    }
+
     // Envoie un rayon depuis la caméra vers l'avant
     public RaycastHit? GetHit(float maxDistance = 100f)
     {
@@ -30,7 +38,7 @@ public class PlayerAction : MonoBehaviour
             if (hit.HasValue)
             {
                 Vector3 placePos = GetBlockPlacementPosition(hit.Value);
-                worldManager.PlaceBlock(placePos, BlockType.Stone);
+                worldManager.PlaceBlock(placePos, selectedBlock);
             }
         }
 
