@@ -128,7 +128,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9399647}
-  m_Layer: 2
+  m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -162,7 +162,7 @@ GameObject:
   - component: {fileID: 399567173}
   - component: {fileID: 399567175}
   - component: {fileID: 399567174}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Cursor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -239,7 +239,7 @@ GameObject:
   - component: {fileID: 426784545}
   - component: {fileID: 426784544}
   - component: {fileID: 426784547}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: ToolBar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -371,7 +371,7 @@ GameObject:
   - component: {fileID: 487518589}
   - component: {fileID: 487518588}
   - component: {fileID: 487518587}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -541,7 +541,7 @@ GameObject:
   - component: {fileID: 569416731}
   - component: {fileID: 569416733}
   - component: {fileID: 569416732}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Slot6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -794,7 +794,7 @@ GameObject:
   - component: {fileID: 924436933}
   - component: {fileID: 924436935}
   - component: {fileID: 924436934}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Slot4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -977,7 +977,7 @@ GameObject:
   - component: {fileID: 1030203080}
   - component: {fileID: 1030203082}
   - component: {fileID: 1030203081}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Slot1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1052,7 +1052,7 @@ GameObject:
   - component: {fileID: 1058630155}
   - component: {fileID: 1058630157}
   - component: {fileID: 1058630156}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Slot8
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1127,7 +1127,7 @@ GameObject:
   - component: {fileID: 1068420950}
   - component: {fileID: 1068420952}
   - component: {fileID: 1068420951}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Slot7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1202,7 +1202,7 @@ GameObject:
   - component: {fileID: 1134867073}
   - component: {fileID: 1134867075}
   - component: {fileID: 1134867074}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Slot5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1277,7 +1277,7 @@ GameObject:
   - component: {fileID: 1145642823}
   - component: {fileID: 1145642825}
   - component: {fileID: 1145642824}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Slot0
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1403,9 +1403,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 5
+  flySpeed: 7
   lookSpeed: 2
   gravity: -20
   jumpHeight: 1.2
+  doubleTapDelay: 0.3
   cameraTransform: {fileID: 963194228}
 --- !u!143 &1361358938
 CharacterController:
@@ -1444,7 +1446,7 @@ GameObject:
   - component: {fileID: 1529950100}
   - component: {fileID: 1529950102}
   - component: {fileID: 1529950101}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Slot2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1699,7 +1701,7 @@ GameObject:
   - component: {fileID: 2094259385}
   - component: {fileID: 2094259387}
   - component: {fileID: 2094259386}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Slot9
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1774,7 +1776,7 @@ GameObject:
   - component: {fileID: 2122607638}
   - component: {fileID: 2122607640}
   - component: {fileID: 2122607639}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Slot3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
