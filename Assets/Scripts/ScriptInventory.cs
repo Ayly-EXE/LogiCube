@@ -7,7 +7,6 @@ public class ScriptInventory : MonoBehaviour
     public Sprite slotNormal;
     public Sprite slotSelected;
 
-    
 
     private List<Image> slots = new();
     private int selectedSlot = 0;
@@ -26,18 +25,18 @@ public class ScriptInventory : MonoBehaviour
         public Sprite sprite;
     }
 
+    public List<BlockSpriteEntry> blockSpritesList = new();
+    private Dictionary<BlockType, Sprite> blockSprites;
+
+
     private PlayerAction playerAction;
 
 
-    public List<BlockSpriteEntry> blockSpritesList = new();
-    private Dictionary<BlockType, Sprite> blockSprites;
 
     
 
     void Start()
     {
-
-        playerAction = FindObjectOfType<PlayerAction>();
 
         foreach (Transform child in transform)
         {
@@ -46,6 +45,7 @@ public class ScriptInventory : MonoBehaviour
                 slots.Add(img);
         }
 
+        playerAction = FindObjectOfType<PlayerAction>();
 
         // Crée un dictionnaire pour accéder rapidement aux sprites par type de bloc
 
@@ -76,7 +76,7 @@ public class ScriptInventory : MonoBehaviour
 
         playerAction.ChangeBlockType(hotbar_slots[0]);
 
-        UpdateHotbarSelectedUI();
+        UpdateHotbarUI();
     }
 
 
@@ -90,12 +90,12 @@ public class ScriptInventory : MonoBehaviour
             int direction = scroll > 0 ? -1 : 1;
             selectedSlot = (selectedSlot + direction + slots.Count) % slots.Count;
 
-            UpdateHotbarSelectedUI();
+            UpdateHotbarUI();
             updatePlayerAction();
         }
     }
 
-    void UpdateHotbarSelectedUI()
+    void UpdateHotbarUI()
     {
         for (int i = 0; i < slots.Count; i++)
         {

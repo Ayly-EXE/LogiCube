@@ -9,7 +9,6 @@ public class PlayerAction : MonoBehaviour
     public void ChangeBlockType(BlockType newBlockType)
     {
         selectedBlock = newBlockType;
-        Debug.Log("Selected block type changed to: " + selectedBlock);
     }
 
     // Envoie un rayon depuis la caméra vers l'avant
