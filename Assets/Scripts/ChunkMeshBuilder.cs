@@ -77,10 +77,11 @@ public static class ChunkMeshBuilder
             types[i++] = type;
         }
 
-        mesh.RecalculateNormals();
+        mesh.RecalculateNormals(); 
         subMeshOrder = types;
         return mesh;
     }
+
 
     private static void AddFace(
         FaceDirection direction, Vector3Int blockPos,

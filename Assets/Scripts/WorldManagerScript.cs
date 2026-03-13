@@ -5,6 +5,7 @@ using System.IO;
 // --- Données de sauvegarde ---
 [System.Serializable] public class BlockData { public Vector3Int position; public string blockType; }
 [System.Serializable] public class PlayerData { public Vector3 position; public Quaternion rotation; }
+
 [System.Serializable]
 public class WorldSaveData
 {
@@ -14,6 +15,14 @@ public class WorldSaveData
     public PlayerData player;
 }
 
+// --- Mapping BlockType -> Material ---
+[System.Serializable]
+public class BlockMaterialEntry
+{
+    public BlockType type;
+    public Material material;
+}
+
 public class WorldManagerScript : MonoBehaviour
 {
     [Header("Références")]
@@ -21,8 +30,9 @@ public class WorldManagerScript : MonoBehaviour
     public GameObject player;
 
     [Header("Matériaux")]
-    public Material dirtMaterial;
-    public Material stoneMaterial;
+    public List<BlockMaterialEntry> blockMaterials = new();
+
+    private Dictionary<BlockType, Material> materialLookup = new();
 
     private Dictionary<Vector3Int, BlockType> blocks = new();
     private int seed;
@@ -34,6 +44,11 @@ public class WorldManagerScript : MonoBehaviour
     // ──────────────────────────────────────────────
     void Start()
     {
+        // Build fast lookup dictionary
+        materialLookup.Clear();
+        foreach (var entry in blockMaterials)
+            materialLookup[entry.type] = entry.material;
+
         var save = LoadOrCreate();
         seed = save.seed;
 
@@ -75,43 +90,51 @@ public class WorldManagerScript : MonoBehaviour
 
     private void RebuildChunk()
     {
-        // Étape 1 : Face Culling — on trouve quelles faces sont visibles
         var visibleFaces = new Dictionary<Vector3Int, List<FaceDirection>>();
+
         foreach (var (pos, type) in blocks)
         {
             if (!type.IsSolid()) continue;
+
             var faces = FaceCuller.GetVisibleFaces(pos, blocks);
             if (faces.Count > 0)
                 visibleFaces[pos] = faces;
         }
 
-        // Étape 2 : Mesh Builder — on construit le mesh avec seulement ces faces
-        var mesh = ChunkMeshBuilder.Build(visibleFaces, blocks, out var subMeshOrder);
+        Mesh mesh = ChunkMeshBuilder.Build(visibleFaces, blocks, out var subMeshOrder);
 
-        // Étape 3 : On associe un matériau à chaque type de bloc
-        var materials = new Material[subMeshOrder.Length];
-        for (int i = 0; i < subMeshOrder.Length; i++)
-            materials[i] = GetMaterial(subMeshOrder[i]);
-
-        // Étape 4 : On applique le tout à un seul GameObject
+        // Create chunk object once
         if (chunkGO == null)
         {
             chunkGO = new GameObject("Chunk");
+            chunkGO.transform.SetParent(transform); // optional but recommended
+
             chunkGO.AddComponent<MeshFilter>();
             chunkGO.AddComponent<MeshRenderer>();
             chunkGO.AddComponent<MeshCollider>();
         }
+
+        // Assign mesh
         chunkGO.GetComponent<MeshFilter>().mesh = mesh;
+
+        // Materials
+        var materials = new Material[subMeshOrder.Length];
+        for (int i = 0; i < subMeshOrder.Length; i++)
+            materials[i] = GetMaterial(subMeshOrder[i]);
+
         chunkGO.GetComponent<MeshRenderer>().materials = materials;
+
+        // Collider
         chunkGO.GetComponent<MeshCollider>().sharedMesh = mesh;
     }
-
-    private Material GetMaterial(BlockType type) => type switch
+    private Material GetMaterial(BlockType type)
     {
-        BlockType.Dirt => dirtMaterial,
-        BlockType.Stone => stoneMaterial,
-        _ => dirtMaterial
-    };
+        if (materialLookup.TryGetValue(type, out var mat))
+            return mat;
+
+        Debug.LogWarning($"No material assigned for block type {type}");
+        return null;
+    }
 
     // ──────────────────────────────────────────────
     //  Sauvegarde
@@ -124,20 +147,34 @@ public class WorldManagerScript : MonoBehaviour
 
         // Ce que le joueur a ajouté
         foreach (var (pos, type) in blocks)
+        {
             if (!baseBlocks.ContainsKey(pos))
-                save.placedBlocks.Add(new BlockData { position = pos, blockType = type.ToString() });
+                save.placedBlocks.Add(new BlockData
+                {
+                    position = pos,
+                    blockType = type.ToString()
+                });
+        }
 
         // Ce que le joueur a détruit
         foreach (var (pos, type) in baseBlocks)
+        {
             if (!blocks.ContainsKey(pos))
-                save.removedBlocks.Add(new BlockData { position = pos, blockType = type.ToString() });
+                save.removedBlocks.Add(new BlockData
+                {
+                    position = pos,
+                    blockType = type.ToString()
+                });
+        }
 
         if (player != null)
+        {
             save.player = new PlayerData
             {
                 position = player.transform.position,
                 rotation = player.transform.rotation
             };
+        }
 
         File.WriteAllText(SavePath, JsonUtility.ToJson(save, true));
     }
@@ -162,5 +199,8 @@ public class WorldManagerScript : MonoBehaviour
             blocks[b.position] = System.Enum.Parse<BlockType>(b.blockType);
     }
 
-    void OnApplicationQuit() => SaveWorld();
+    void OnApplicationQuit()
+    {
+        SaveWorld();
+    }
 }

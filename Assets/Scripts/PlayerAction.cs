@@ -23,8 +23,8 @@ public class PlayerAction : MonoBehaviour
 
     void Update()
     {
-        // Clic gauche = poser un bloc
-        if (Input.GetMouseButtonDown(0))
+        // Clic droit = poser un bloc
+        if (Input.GetMouseButtonDown(1))
         {
             RaycastHit? hit = GetHit();
             if (hit.HasValue)
@@ -34,8 +34,8 @@ public class PlayerAction : MonoBehaviour
             }
         }
 
-        // Clic droit = détruire un bloc
-        if (Input.GetMouseButtonDown(1))
+        // Clic gauche = détruire un bloc
+        if (Input.GetMouseButtonDown(0))
         {
             RaycastHit? hit = GetHit();
             if (hit.HasValue)

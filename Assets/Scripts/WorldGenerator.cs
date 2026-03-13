@@ -25,7 +25,18 @@ public class WorldGenerator : MonoBehaviour
 
                 for (int y = 0; y <= height; y++)
                 {
-                    var type = (y > 3) ? BlockType.Dirt : BlockType.Stone;
+                    BlockType type;
+
+                    if(y <=3){
+                        type = BlockType.Stone;
+                    }
+                    else if (y==height){
+                        type = BlockType.Grass;
+                    }
+                    else{
+                        type = BlockType.Dirt;
+                    }
+                
                     blocks[new Vector3Int(x, y, z)] = type;
                 }
             }
