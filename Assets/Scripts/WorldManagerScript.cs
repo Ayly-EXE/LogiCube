@@ -78,7 +78,7 @@ public class WorldManagerScript : MonoBehaviour
         RebuildChunk();
     }
 
-    public void DestroyMultipleBlocks(Vector3[] worldPos)
+    public void DestroyMultipleBlocks(List<Vector3Int> worldPos)
     {
         foreach (Vector3 block in worldPos)
         {
@@ -116,4 +116,50 @@ public class WorldManagerScript : MonoBehaviour
     }
 
     public Dictionary<Vector3Int, BlockType> Blocks => blocks;
+
+    Vector3Int GetHitBlockPosition(RaycastHit hit)
+    {
+        return Vector3Int.FloorToInt(hit.point - hit.normal * 0.01f);
+    }
+
+    public void Explode(Vector3 origin)
+    {
+        List<RaycastHit> allHits = new List<RaycastHit>();
+        float radius = 5f;
+
+        float angleStep = 30f;
+
+        for (float yaw = 0; yaw < 360; yaw += angleStep)
+        {
+            for (float pitch = -60; pitch <= 60; pitch += angleStep)
+            {
+                Vector3 direction =
+                    Quaternion.Euler(pitch, yaw, 0) * Vector3.forward;
+
+                RaycastHit[] hits =
+                    Physics.RaycastAll(origin, direction, radius);
+
+                foreach (var hit in hits)
+                {
+                    if (!allHits.Contains(hit))
+                        allHits.Add(hit);
+                }
+
+                Debug.DrawRay(origin, direction * radius, Color.green, 1f);
+            }
+        }
+
+        List<Vector3Int> allBlocks = new List<Vector3Int>();
+
+        foreach (RaycastHit hit in allHits)
+        {
+            allBlocks.Add(GetHitBlockPosition(hit));
+        }
+
+
+
+        DestroyMultipleBlocks(allBlocks);
+
+        Debug.Log("Blocks hit: " + allBlocks.Count);
+    }
 }

@@ -358,6 +358,8 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 632e18ab261ab2448b59da9b5f685048, type: 3}
   - type: 3
     sprite: {fileID: 21300000, guid: 6fcbffe02fd4a88418e1dbdcfe93f4fe, type: 3}
+  - type: 4
+    sprite: {fileID: 21300000, guid: 4c337dfdd640e4d9c93fec557fbecfe0, type: 3}
 --- !u!1 &487518585
 GameObject:
   m_ObjectHideFlags: 0
@@ -1660,6 +1662,8 @@ MonoBehaviour:
     material: {fileID: 2100000, guid: fd6223abd4126944abd3caa61fa9a3ee, type: 2}
   - type: 3
     material: {fileID: 2100000, guid: ce0954b78089e03499e0e1d0c589dc78, type: 2}
+  - type: 4
+    material: {fileID: 2100000, guid: bd840392892f647bcb3e9dd9e7be2b36, type: 2}
 --- !u!4 &1815888935
 Transform:
   m_ObjectHideFlags: 0

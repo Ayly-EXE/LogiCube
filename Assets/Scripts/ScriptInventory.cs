@@ -16,6 +16,7 @@ public class ScriptInventory : MonoBehaviour
         BlockType.Dirt,
         BlockType.Grass,
         BlockType.Stone,
+        BlockType.Tnt,
     };
 
     [System.Serializable]
