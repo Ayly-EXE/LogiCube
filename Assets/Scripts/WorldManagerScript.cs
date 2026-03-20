@@ -75,6 +75,25 @@ public class WorldManagerScript : MonoBehaviour
 
         blocks.Remove(p);
         chunkSpawner.OnBlockDestroyed(p);
+        RebuildChunk();
+    }
+
+    public void DestroyMultipleBlocks(Vector3[] worldPos)
+    {
+        foreach (Vector3 block in worldPos)
+        {
+            var p = Vector3Int.FloorToInt(block);
+            if (!blocks.ContainsKey(p)) return;
+
+            blocks.Remove(p);
+            chunkSpawner.OnBlockDestroyed(p);
+        }
+        RebuildChunk();
+    }
+
+    public void RebuildChunk()
+    {
+        chunkSpawner.RebuildLoadedChunks();
     }
 
     public Material GetMaterial(BlockType type)
