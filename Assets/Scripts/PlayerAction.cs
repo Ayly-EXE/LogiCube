@@ -6,6 +6,8 @@ public class PlayerAction : MonoBehaviour
     public BlockType selectedBlock = BlockType.Stone;
     public CharacterController playerController;
 
+    public TntBehavior tntBehavior;
+
     void Update()
     {
         if (Input.GetMouseButtonDown(1))
@@ -21,6 +23,12 @@ public class PlayerAction : MonoBehaviour
             if (!hit.HasValue)
                 return;
 
+            Vector3Int block = GetBlockPlacementPosition(hit.Value);
+
+            if (worldManager.Blocks[block] == BlockType.Tnt)
+            {
+                tntBehavior.Explode((Vector3)block);
+            }
 
         }
     }

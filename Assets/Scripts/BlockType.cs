@@ -4,6 +4,8 @@ public enum BlockType
     Dirt = 1,  // terre
     Stone = 2,  // pierre
     Grass = 3,  // herbe
+
+    Tnt = 4,
 }
 
 public static class BlockTypeExtensions

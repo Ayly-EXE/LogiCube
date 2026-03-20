@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 public class TntBehavior : MonoBehaviour
@@ -7,15 +8,16 @@ public class TntBehavior : MonoBehaviour
 
     public float radius = 5f;
 
+    WorldManagerScript worldManager;
+
     // Update is called once per frame
     Vector3Int GetHitBlockPosition(RaycastHit hit)
     {
         return Vector3Int.FloorToInt(hit.point - hit.normal * 0.01f);
     }
 
-    void Explode()
+    public void Explode(Vector3 origin)
     {
-        Vector3 origin = transform.position;
 
         List<RaycastHit> allHits = new List<RaycastHit>();
 
@@ -47,6 +49,8 @@ public class TntBehavior : MonoBehaviour
         {
             allBlocks.Add(GetHitBlockPosition(hit));
         }
+
+        WorldManagerScript.DestroyMultipleBlock(allBlocks);
 
         Debug.Log("Blocks hit: " + allBlocks.Count);
     }
