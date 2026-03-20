@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 
+
 // --- Données de sauvegarde ---
 [System.Serializable] public class BlockData { public Vector3Int position; public string blockType; }
 [System.Serializable] public class PlayerData { public Vector3 position; public Quaternion rotation; }
@@ -15,6 +16,7 @@ public class WorldSaveData
     public PlayerData player;
 }
 
+
 // --- Mapping BlockType -> Material ---
 [System.Serializable]
 public class BlockMaterialEntry
@@ -22,6 +24,7 @@ public class BlockMaterialEntry
     public BlockType type;
     public Material material;
 }
+
 
 public class WorldManagerScript : MonoBehaviour
 {
@@ -38,6 +41,9 @@ public class WorldManagerScript : MonoBehaviour
     private Dictionary<Vector3Int, BlockType> blocks = new();
 
     private string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
+
+    [Header("VFX")]
+    public ParticleSystem explosionPrefab;
 
     void Start()
     {
@@ -78,16 +84,17 @@ public class WorldManagerScript : MonoBehaviour
         RebuildChunk();
     }
 
-    public void DestroyMultipleBlocks(List<Vector3Int> worldPos)
+    public void DestroyMultipleBlocks(HashSet<Vector3Int> worldPos)
     {
-        foreach (Vector3 block in worldPos)
+        foreach (Vector3Int p in worldPos)
         {
-            var p = Vector3Int.FloorToInt(block);
-            if (!blocks.ContainsKey(p)) return;
+            if (!blocks.ContainsKey(p))
+                continue;   // ← NOT return
 
             blocks.Remove(p);
             chunkSpawner.OnBlockDestroyed(p);
         }
+
         RebuildChunk();
     }
 
@@ -124,42 +131,41 @@ public class WorldManagerScript : MonoBehaviour
 
     public void Explode(Vector3 origin)
     {
-        List<RaycastHit> allHits = new List<RaycastHit>();
-        float radius = 5f;
+        int radius = 3;
 
-        float angleStep = 30f;
-
-        for (float yaw = 0; yaw < 360; yaw += angleStep)
+        if (explosionPrefab != null)
         {
-            for (float pitch = -60; pitch <= 60; pitch += angleStep)
+            ParticleSystem vfx = Instantiate(explosionPrefab, origin, Quaternion.identity);
+            vfx.Play();
+            Destroy(vfx.gameObject, vfx.main.duration + vfx.main.startLifetime.constantMax);
+        }
+
+        Vector3Int center = Vector3Int.FloorToInt(origin);
+
+        HashSet<Vector3Int> blocksToDestroy = new HashSet<Vector3Int>();
+
+        for (int x = -radius; x <= radius; x++)
+        {
+            for (int y = -radius; y <= radius; y++)
             {
-                Vector3 direction =
-                    Quaternion.Euler(pitch, yaw, 0) * Vector3.forward;
-
-                RaycastHit[] hits =
-                    Physics.RaycastAll(origin, direction, radius);
-
-                foreach (var hit in hits)
+                for (int z = -radius; z <= radius; z++)
                 {
-                    if (!allHits.Contains(hit))
-                        allHits.Add(hit);
-                }
+                    Vector3Int offset = new Vector3Int(x, y, z);
+                    Vector3Int pos = center + offset;
 
-                Debug.DrawRay(origin, direction * radius, Color.green, 1f);
+                    // sphere check (distance² <= radius²)
+                    if (offset.sqrMagnitude > radius * radius)
+                        continue;
+
+                    // only destroy existing blocks
+                    if (!blocks.ContainsKey(pos))
+                        continue;
+
+                    blocksToDestroy.Add(pos);
+                }
             }
         }
 
-        List<Vector3Int> allBlocks = new List<Vector3Int>();
-
-        foreach (RaycastHit hit in allHits)
-        {
-            allBlocks.Add(GetHitBlockPosition(hit));
-        }
-
-
-
-        DestroyMultipleBlocks(allBlocks);
-
-        Debug.Log("Blocks hit: " + allBlocks.Count);
+        DestroyMultipleBlocks(blocksToDestroy);
     }
 }
