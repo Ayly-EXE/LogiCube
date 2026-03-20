@@ -51,19 +51,9 @@ public class WorldManagerScript : MonoBehaviour
         foreach (var entry in blockMaterials)
             materialLookup[entry.type] = entry.material;
 
-        if (chunkSpawner == null)
-            chunkSpawner = GetComponent<ChunkSpawner>();
-
-        if (chunkSpawner == null)
-            chunkSpawner = gameObject.AddComponent<ChunkSpawner>();
-
         var save = chunkSpawner.Initialize(this, SavePath);
-
-        if (save.player != null && player != null)
-        {
-            player.transform.position = save.player.position;
-            player.transform.rotation = save.player.rotation;
-        }
+        player.transform.position = save.player.position;
+        player.transform.rotation = save.player.rotation;
     }
 
     public void PlaceBlock(Vector3 worldPos, BlockType type)
