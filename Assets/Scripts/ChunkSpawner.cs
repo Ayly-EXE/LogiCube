@@ -87,7 +87,10 @@ public class ChunkSpawner : MonoBehaviour
             removedBlocks.Add(position);
         else
             removedBlocks.Remove(position);
+    }
 
+    public void RebuildChunk()
+    {
         RebuildLoadedChunks();
     }
 
