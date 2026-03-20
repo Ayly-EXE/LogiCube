@@ -13,6 +13,16 @@ public class PlayerAction : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
             TryBreakBlock();
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            RaycastHit? hit = GetHit();
+
+            if (!hit.HasValue)
+                return;
+
+
+        }
     }
 
     // Envoie un rayon devant la caméra pour voir ce qu'on vise

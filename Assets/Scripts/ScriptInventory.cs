@@ -33,7 +33,7 @@ public class ScriptInventory : MonoBehaviour
 
 
 
-    
+
 
     void Start()
     {
@@ -109,5 +109,5 @@ public class ScriptInventory : MonoBehaviour
             playerAction.ChangeBlockType(hotbar_slots[selectedSlot]);
     }
 
-    
+
 }
