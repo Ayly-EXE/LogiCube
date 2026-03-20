@@ -88,6 +88,17 @@ public class WorldManagerScript : MonoBehaviour
         RebuildChunk();
     }
 
+    public void DestroyMultipleBlocks(Vector3[] worldPos)
+    {
+        foreach (Vector3 block in worldPos)
+        {
+            var p = Vector3Int.FloorToInt(block);
+            if (!blocks.ContainsKey(p)) return;
+            blocks.Remove(p);
+        }
+        RebuildChunk();
+    }
+
     private void RebuildChunk()
     {
         var visibleFaces = new Dictionary<Vector3Int, List<FaceDirection>>();
