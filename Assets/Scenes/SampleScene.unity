@@ -1350,7 +1350,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1361358936}
-  - component: {fileID: 1361358935}
   - component: {fileID: 1361358938}
   - component: {fileID: 1361358937}
   m_Layer: 0
@@ -1360,18 +1359,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1361358935
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1361358934}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: faefda657caae5c4d8738edd021b014d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!4 &1361358936
 Transform:
   m_ObjectHideFlags: 0
@@ -1669,8 +1656,6 @@ MonoBehaviour:
     material: {fileID: 0}
   - type: 1
     material: {fileID: 2100000, guid: 5be225ada7c7f7d43aa11e52fa112f45, type: 2}
-  - type: 2
-    material: {fileID: 2100000, guid: fd6223abd4126944abd3caa61fa9a3ee, type: 2}
   - type: 2
     material: {fileID: 2100000, guid: fd6223abd4126944abd3caa61fa9a3ee, type: 2}
   - type: 3
