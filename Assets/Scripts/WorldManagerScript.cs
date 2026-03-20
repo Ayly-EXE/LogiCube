@@ -28,6 +28,7 @@ public class WorldManagerScript : MonoBehaviour
     [Header("Références")]
     public WorldGenerator generator;
     public GameObject player;
+    public ChunkSpawner chunkSpawner;
 
     [Header("Matériaux")]
     public List<BlockMaterialEntry> blockMaterials = new();
@@ -35,33 +36,23 @@ public class WorldManagerScript : MonoBehaviour
     private Dictionary<BlockType, Material> materialLookup = new();
 
     private Dictionary<Vector3Int, BlockType> blocks = new();
-    private int seed;
-
-    private GameObject chunkGO;
 
     private string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
-    // ──────────────────────────────────────────────
     void Start()
     {
-        // Build fast lookup dictionary
         materialLookup.Clear();
         foreach (var entry in blockMaterials)
             materialLookup[entry.type] = entry.material;
 
-        var save = LoadOrCreate();
-        seed = save.seed;
+        if (chunkSpawner == null)
+            chunkSpawner = GetComponent<ChunkSpawner>();
 
-        // 1) On génère le monde de base avec la seed
-        blocks = generator.Generate(seed);
+        if (chunkSpawner == null)
+            chunkSpawner = gameObject.AddComponent<ChunkSpawner>();
 
-        // 2) On remet les modifications du joueur (blocs posés/détruits)
-        ApplyDelta(save);
+        var save = chunkSpawner.Initialize(this, SavePath);
 
-        // 3) On construit le rendu 3D
-        RebuildChunk();
-
-        // 4) On replace le joueur où il était
         if (save.player != null && player != null)
         {
             player.transform.position = save.player.position;
@@ -69,65 +60,24 @@ public class WorldManagerScript : MonoBehaviour
         }
     }
 
-    // ──────────────────────────────────────────────
-    //  Actions du joueur
-    // ──────────────────────────────────────────────
-
     public void PlaceBlock(Vector3 worldPos, BlockType type)
     {
         var p = Vector3Int.FloorToInt(worldPos);
         blocks[p] = type;
-        RebuildChunk();
+
+        chunkSpawner.OnBlockPlaced(p, type);
     }
 
     public void DestroyBlock(Vector3 worldPos)
     {
         var p = Vector3Int.FloorToInt(worldPos);
         if (!blocks.ContainsKey(p)) return;
+
         blocks.Remove(p);
-        RebuildChunk();
+        chunkSpawner.OnBlockDestroyed(p);
     }
 
-    private void RebuildChunk()
-    {
-        var visibleFaces = new Dictionary<Vector3Int, List<FaceDirection>>();
-
-        foreach (var (pos, type) in blocks)
-        {
-            if (!type.IsSolid()) continue;
-
-            var faces = FaceCuller.GetVisibleFaces(pos, blocks);
-            if (faces.Count > 0)
-                visibleFaces[pos] = faces;
-        }
-
-        Mesh mesh = ChunkMeshBuilder.Build(visibleFaces, blocks, out var subMeshOrder);
-
-        // Create chunk object once
-        if (chunkGO == null)
-        {
-            chunkGO = new GameObject("Chunk");
-            chunkGO.transform.SetParent(transform);
-
-            chunkGO.AddComponent<MeshFilter>();
-            chunkGO.AddComponent<MeshRenderer>();
-            chunkGO.AddComponent<MeshCollider>();
-        }
-
-        // Assign mesh
-        chunkGO.GetComponent<MeshFilter>().mesh = mesh;
-
-        // Materials
-        var materials = new Material[subMeshOrder.Length];
-        for (int i = 0; i < subMeshOrder.Length; i++)
-            materials[i] = GetMaterial(subMeshOrder[i]);
-
-        chunkGO.GetComponent<MeshRenderer>().materials = materials;
-
-        // Collider
-        chunkGO.GetComponent<MeshCollider>().sharedMesh = mesh;
-    }
-    private Material GetMaterial(BlockType type)
+    public Material GetMaterial(BlockType type)
     {
         if (materialLookup.TryGetValue(type, out var mat))
             return mat;
@@ -136,71 +86,15 @@ public class WorldManagerScript : MonoBehaviour
         return null;
     }
 
-    // ──────────────────────────────────────────────
-    //  Sauvegarde
-    // ──────────────────────────────────────────────
-
     public void SaveWorld()
     {
-        var save = new WorldSaveData { seed = seed };
-        var baseBlocks = generator.Generate(seed);
-
-        // Ce que le joueur a ajouté
-        foreach (var (pos, type) in blocks)
-        {
-            if (!baseBlocks.ContainsKey(pos))
-                save.placedBlocks.Add(new BlockData
-                {
-                    position = pos,
-                    blockType = type.ToString()
-                });
-        }
-
-        // Ce que le joueur a détruit
-        foreach (var (pos, type) in baseBlocks)
-        {
-            if (!blocks.ContainsKey(pos))
-                save.removedBlocks.Add(new BlockData
-                {
-                    position = pos,
-                    blockType = type.ToString()
-                });
-        }
-
-        if (player != null)
-        {
-            save.player = new PlayerData
-            {
-                position = player.transform.position,
-                rotation = player.transform.rotation
-            };
-        }
-
-        File.WriteAllText(SavePath, JsonUtility.ToJson(save, true));
-    }
-
-    private WorldSaveData LoadOrCreate()
-    {
-        if (!File.Exists(SavePath))
-            return new WorldSaveData { seed = Random.Range(0, 999999) };
-
-        var save = JsonUtility.FromJson<WorldSaveData>(File.ReadAllText(SavePath));
-        save.placedBlocks ??= new();
-        save.removedBlocks ??= new();
-        return save;
-    }
-
-    private void ApplyDelta(WorldSaveData save)
-    {
-        foreach (var b in save.removedBlocks)
-            blocks.Remove(b.position);
-
-        foreach (var b in save.placedBlocks)
-            blocks[b.position] = System.Enum.Parse<BlockType>(b.blockType);
+        chunkSpawner.SaveWorld(SavePath, player);
     }
 
     void OnApplicationQuit()
     {
         SaveWorld();
     }
+
+    public Dictionary<Vector3Int, BlockType> Blocks => blocks;
 }
