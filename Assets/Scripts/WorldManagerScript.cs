@@ -119,21 +119,8 @@ public class WorldManagerScript : MonoBehaviour
         return Vector3Int.FloorToInt(hit.point - hit.normal * 0.01f);
     }
 
-    public void Explode(Vector3 origin)
+    private void CascadeExplosion(int radius, Vector3Int center, HashSet<Vector3Int> blocksToDestroy, HashSet<Vector3Int> tnt)
     {
-        int radius = 3;
-
-        if (explosionPrefab != null)
-        {
-            ParticleSystem vfx = Instantiate(explosionPrefab, origin, Quaternion.identity);
-            vfx.Play();
-            Destroy(vfx.gameObject, vfx.main.duration + vfx.main.startLifetime.constantMax);
-        }
-
-        Vector3Int center = Vector3Int.FloorToInt(origin);
-
-        HashSet<Vector3Int> blocksToDestroy = new HashSet<Vector3Int>();
-
         for (int x = -radius; x <= radius; x++)
         {
             for (int y = -radius; y <= radius; y++)
@@ -151,10 +138,39 @@ public class WorldManagerScript : MonoBehaviour
                     if (!blocks.ContainsKey(pos))
                         continue;
 
+                    if (blocks[pos] == BlockType.Tnt && !tnt.Contains(pos))
+                    {
+                        tnt.Add(pos);
+                        CascadeExplosion(radius, pos, blocksToDestroy, tnt);
+                        Debug.Log("will kaboom at pos" + pos);
+
+                    }
+
                     blocksToDestroy.Add(pos);
                 }
             }
         }
+    }
+
+    public void Explode(Vector3 origin)
+    {
+        int radius = 3;
+
+        Vector3Int center = Vector3Int.FloorToInt(origin);
+
+        HashSet<Vector3Int> blocksToDestroy = new HashSet<Vector3Int>();
+        HashSet<Vector3Int> tnt = new HashSet<Vector3Int>();
+        tnt.Add(Vector3Int.FloorToInt(origin));
+        CascadeExplosion(radius, center, blocksToDestroy, tnt);
+
+        foreach (Vector3Int pos in tnt)
+        {
+            ParticleSystem vfx = Instantiate(explosionPrefab, pos, Quaternion.identity);
+            vfx.Play();
+            Destroy(vfx.gameObject, vfx.main.duration + vfx.main.startLifetime.constantMax);
+        }
+
+
 
         DestroyMultipleBlocks(blocksToDestroy);
     }

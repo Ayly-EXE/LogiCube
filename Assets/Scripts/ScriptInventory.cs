@@ -13,7 +13,7 @@ public class ScriptInventory : MonoBehaviour
 
     private List<BlockType> hotbar_slots = new()
     {
-        BlockType.Dirt,
+        BlockType.Tnt,
         BlockType.Grass,
         BlockType.Stone,
         BlockType.Tnt,
