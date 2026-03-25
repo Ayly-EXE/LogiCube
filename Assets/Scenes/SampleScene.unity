@@ -6521,6 +6521,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1815888935}
   - component: {fileID: 1815888934}
+  - component: {fileID: 1815888936}
   m_Layer: 0
   m_Name: WorldManager
   m_TagString: Untagged
@@ -6542,7 +6543,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   generator: {fileID: 1603202861}
   player: {fileID: 1361358934}
-  chunkSpawner: {fileID: 0}
+  chunkSpawner: {fileID: 1815888936}
   blockMaterials:
   - type: 0
     material: {fileID: 0}
@@ -6554,6 +6555,7 @@ MonoBehaviour:
     material: {fileID: 2100000, guid: ce0954b78089e03499e0e1d0c589dc78, type: 2}
   - type: 4
     material: {fileID: 2100000, guid: bd840392892f647bcb3e9dd9e7be2b36, type: 2}
+  explosionPrefab: {fileID: 1466154608}
 --- !u!4 &1815888935
 Transform:
   m_ObjectHideFlags: 0
@@ -6569,6 +6571,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1815888936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1815888933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6a363d08a80d48988886201813764a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  worldManager: {fileID: 1815888934}
+  viewDistanceInChunks: 1
 --- !u!1 &2094259384
 GameObject:
   m_ObjectHideFlags: 0
