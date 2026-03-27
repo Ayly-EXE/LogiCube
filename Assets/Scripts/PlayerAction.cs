@@ -141,6 +141,13 @@ public class PlayerAction : MonoBehaviour
         if (!hit.HasValue)
             return;
 
+        SlimeController slime = hit.Value.transform.GetComponentInParent<SlimeController>();
+        if (slime != null)
+        {
+            slime.TakeHit();
+            return;
+        }
+
         Vector3Int hitBlockPos = GetHitBlockPosition(hit.Value);
         Debug.Log(hitBlockPos);
         worldManager.DestroyBlock(hitBlockPos);

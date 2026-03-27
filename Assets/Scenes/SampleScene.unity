@@ -1353,6 +1353,7 @@ GameObject:
   - component: {fileID: 1361358936}
   - component: {fileID: 1361358938}
   - component: {fileID: 1361358937}
+  - component: {fileID: 1361358939}
   m_Layer: 0
   m_Name: PlayerManager
   m_TagString: Untagged
@@ -1423,6 +1424,24 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1361358939
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1361358934}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b70c195128bb4fc4a8a911f0be74557, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  slimePrefab: {fileID: -5901104394644650980, guid: 041b3186aebb54b1dbcbe48ba24b7c7a, type: 3}
+  spawnOrigin: {fileID: 9399647}
+  spawnKey: 112
+  spawnDistance: 4
+  spawnHeight: 1.5
+  maxAliveSlimes: 80
 --- !u!1 &1466154606
 GameObject:
   m_ObjectHideFlags: 0
@@ -6509,8 +6528,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   chunkSize: 32
-  noiseScale: 0.1
-  terrainHeight: 10
+  noiseScale: 0.05
+  terrainHeight: 17
 --- !u!1 &1815888933
 GameObject:
   m_ObjectHideFlags: 0
@@ -6555,6 +6574,8 @@ MonoBehaviour:
     material: {fileID: 2100000, guid: ce0954b78089e03499e0e1d0c589dc78, type: 2}
   - type: 4
     material: {fileID: 2100000, guid: bd840392892f647bcb3e9dd9e7be2b36, type: 2}
+  tntPrimedPrefab: {fileID: 4083437359705976096, guid: e7d2920cbf2c64161b4f3951526b43a5, type: 3}
+  tntFuseDuration: 2.5
   explosionPrefab: {fileID: 1466154608}
 --- !u!4 &1815888935
 Transform:

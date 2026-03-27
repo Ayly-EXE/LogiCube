@@ -57,6 +57,7 @@ public class WorldManagerScript : MonoBehaviour
             materialLookup[entry.type] = entry.material;
 
         var save = chunkSpawner.Initialize(this, SavePath);
+        Debug.Log(SavePath);
         player.transform.position = save.player.position;
         player.transform.rotation = save.player.rotation;
     }
