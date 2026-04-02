@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using TMPro;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -13,6 +14,7 @@ public class editor : MonoBehaviour
     [SerializeField] private Transform cameraTransform;
     [SerializeField] private GameObject referenceBlock;
     [SerializeField] private Transform placedBlocksRoot;
+    [SerializeField] private TMP_InputField saveInputField;
 
     [Header("Blocks")]
     [SerializeField] private List<BlockPrefabEntry> blockPrefabs = new();
@@ -31,7 +33,6 @@ public class editor : MonoBehaviour
     [SerializeField] private bool preventBuildWhenPointerOverUI = false;
 
     [Header("Save")]
-    [SerializeField] private KeyCode saveKey = KeyCode.F5;
     [SerializeField] private string saveFolderName = "SavedStructures";
     [SerializeField] private string saveFilePrefix = "structure";
 
@@ -43,6 +44,8 @@ public class editor : MonoBehaviour
 
     private float yaw;
     private float pitch;
+
+    private string fileName;
 
     private void Awake()
     {
@@ -60,11 +63,18 @@ public class editor : MonoBehaviour
         pitch = GetNormalizedPitch(cameraTransform != null ? cameraTransform.localEulerAngles.x : 0f);
         SetCursorLocked(true);
         LogSelectedBlock();
+
+        if (saveInputField != null)
+        {
+            saveInputField.onSelect.AddListener(_ => SetCursorLocked(false));
+            saveInputField.onDeselect.AddListener(_ => SetCursorLocked(true));
+        }
     }
 
     private void Update()
     {
         HandleCursorToggle();
+        HandleInputFieldFocus();
 
         if (Cursor.lockState != CursorLockMode.Locked)
             return;
@@ -72,7 +82,6 @@ public class editor : MonoBehaviour
         HandleLook();
         HandleFlyMovement();
         HandleBuildInput();
-        HandleSaveInput();
     }
 
     public void ChangeBlockType(BlockType newBlockType)
@@ -203,11 +212,36 @@ public class editor : MonoBehaviour
 
     private void HandleCursorToggle()
     {
-        if (!Input.GetKeyDown(KeyCode.Escape))
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            bool lockCursor = Cursor.lockState != CursorLockMode.Locked;
+            SetCursorLocked(lockCursor);
+        }
+
+        if (Input.GetMouseButtonDown(0) && IsPointerOverUI())
+        {
+            SetCursorLocked(false);
+        }
+    }
+
+    private void HandleInputFieldFocus()
+    {
+        if (!Input.GetKeyDown(KeyCode.I))
             return;
 
-        bool lockCursor = Cursor.lockState != CursorLockMode.Locked;
-        SetCursorLocked(lockCursor);
+        if (saveInputField == null)
+            return;
+
+        if (saveInputField.isFocused)
+        {
+            saveInputField.DeactivateInputField();
+            SetCursorLocked(true);
+        }
+        else
+        {
+            saveInputField.ActivateInputField();
+            SetCursorLocked(false);
+        }
     }
 
     private void SetCursorLocked(bool locked)
@@ -257,6 +291,9 @@ public class editor : MonoBehaviour
 
     private void HandleBuildInput()
     {
+        if (saveInputField != null && saveInputField.isFocused)
+            return;
+
         if (Input.GetMouseButtonDown(1))
             TryPlaceBlock();
 
@@ -264,10 +301,10 @@ public class editor : MonoBehaviour
             TryBreakBlock();
     }
 
-    private void HandleSaveInput()
+    public void ReadStringInput(string s)
     {
-        if (Input.GetKeyDown(saveKey))
-            SaveToJson();
+        fileName = s;
+        SaveToJson();
     }
 
     private void TryPlaceBlock()
@@ -461,8 +498,8 @@ public class editor : MonoBehaviour
         string folderPath = Path.Combine(Application.dataPath, saveFolderName);
         Directory.CreateDirectory(folderPath);
 
-        string fileName = $"{saveFilePrefix}_{DateTime.Now:yyyyMMdd_HHmmss}.json";
-        string fullPath = Path.Combine(folderPath, fileName);
+        string file = $"{fileName}.json";
+        string fullPath = Path.Combine(folderPath, file);
         File.WriteAllText(fullPath, json);
 
         Debug.Log($"[EditorScene] Structure enregistree: {fullPath}");
