@@ -351,6 +351,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   slotNormal: {fileID: 21300000, guid: 59b9ffaff015c430b8bd282fe433b1cc, type: 3}
   slotSelected: {fileID: 21300000, guid: a544bd62f33f1264b80259938dbc59d7, type: 3}
+  hotbar_slots: 01000000020000000300000004000000
   blockSpritesList:
   - type: 1
     sprite: {fileID: 21300000, guid: dd5ffafb28cf2f846ac2380770c19c2f, type: 3}
@@ -6528,8 +6529,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   chunkSize: 32
-  noiseScale: 0.05
+  noiseScale: 0.03
   terrainHeight: 17
+  enableStructures: 1
+  structuresFolderName: SavedStructures
+  structureSpawnChance: 1
+  structureRegionSize: 24
+  maxGroundVariation: 2
 --- !u!1 &1815888933
 GameObject:
   m_ObjectHideFlags: 0

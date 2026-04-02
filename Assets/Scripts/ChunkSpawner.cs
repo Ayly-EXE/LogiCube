@@ -52,6 +52,9 @@ public class ChunkSpawner : MonoBehaviour
         save.removedBlocks ??= new();
 
         seed = save.seed;
+        if (worldManager != null && worldManager.generator != null)
+            worldManager.generator.Configure(seed);
+
         placedBlocks.Clear();
         removedBlocks.Clear();
 
@@ -175,12 +178,10 @@ public class ChunkSpawner : MonoBehaviour
 
     public BlockType GetBaseBlockAt(Vector3Int position)
     {
-        int height = GetTerrainHeight(position.x, position.z, GetSeedOffset());
-
-        if (position.y < 0 || position.y > height)
+        if (worldManager == null || worldManager.generator == null)
             return BlockType.Air;
 
-        return GetBlockTypeForHeight(position.y, height);
+        return worldManager.generator.GetGeneratedBlockAt(position);
     }
 
     private void LoadChunk(Vector2Int chunkCoord)
@@ -270,46 +271,10 @@ public class ChunkSpawner : MonoBehaviour
 
     private Dictionary<Vector3Int, BlockType> GenerateChunkBlocks(Vector2Int chunkCoord)
     {
-        var chunkBlocks = new Dictionary<Vector3Int, BlockType>();
-        Vector2 offset = GetSeedOffset();
-        int half = worldManager.generator.chunkSize / 2;
-        int startX = chunkCoord.x * worldManager.generator.chunkSize - half;
-        int startZ = chunkCoord.y * worldManager.generator.chunkSize - half;
+        if (worldManager == null || worldManager.generator == null)
+            return new Dictionary<Vector3Int, BlockType>();
 
-        for (int x = startX; x < startX + worldManager.generator.chunkSize; x++)
-            for (int z = startZ; z < startZ + worldManager.generator.chunkSize; z++)
-            {
-                int height = GetTerrainHeight(x, z, offset);
-
-                for (int y = 0; y <= height; y++)
-                    chunkBlocks[new Vector3Int(x, y, z)] = GetBlockTypeForHeight(y, height);
-            }
-
-        return chunkBlocks;
-    }
-
-    private int GetTerrainHeight(int x, int z, Vector2 offset)
-    {
-        float nx = (x + offset.x) * worldManager.generator.noiseScale;
-        float nz = (z + offset.y) * worldManager.generator.noiseScale;
-        return Mathf.FloorToInt(Mathf.PerlinNoise(nx, nz) * worldManager.generator.terrainHeight);
-    }
-
-    private BlockType GetBlockTypeForHeight(int y, int height)
-    {
-        if (y <= 3)
-            return BlockType.Stone;
-
-        if (y == height)
-            return BlockType.Grass;
-
-        return BlockType.Dirt;
-    }
-
-    private Vector2 GetSeedOffset()
-    {
-        var prng = new System.Random(seed);
-        return new Vector2(prng.Next(-100000, 100000),
-                           prng.Next(-100000, 100000));
+        worldManager.generator.Configure(seed);
+        return worldManager.generator.GenerateChunk(chunkCoord);
     }
 }
