@@ -6,7 +6,7 @@ public class SlimeController : MonoBehaviour
 {
     [Header("Split")]
     [Min(0)] public int generation = 0;
-    [Min(1)] public int maxGenerations = 5;
+    [Min(1)] public int maxGenerations = 3;
     [Range(0.3f, 0.95f)] public float childScaleMultiplier = 0.75f;
     [Min(0.05f)] public float childSpawnOffset = 0.45f;
     [Min(0f)] public float childUpOffset = 0.2f;
