@@ -11,11 +11,12 @@ public class ScriptInventory : MonoBehaviour
     private List<Image> slots = new();
     private int selectedSlot = 0;
 
+    [SerializeField]
     private List<BlockType> hotbar_slots = new()
     {
-        BlockType.Tnt,
-        BlockType.Grass,
+        BlockType.Dirt,
         BlockType.Stone,
+        BlockType.Grass,
         BlockType.Tnt,
     };
 
@@ -31,6 +32,7 @@ public class ScriptInventory : MonoBehaviour
 
 
     private PlayerAction playerAction;
+    private editor editorController;
 
 
 
@@ -46,7 +48,8 @@ public class ScriptInventory : MonoBehaviour
                 slots.Add(img);
         }
 
-        playerAction = FindObjectOfType<PlayerAction>();
+        playerAction = FindFirstObjectByType<PlayerAction>();
+        editorController = FindFirstObjectByType<editor>();
 
         // Crée un dictionnaire pour accéder rapidement aux sprites par type de bloc
 
@@ -57,7 +60,8 @@ public class ScriptInventory : MonoBehaviour
             blockSprites[entry.type] = entry.sprite;
         }
 
-        for (int i = 0; i < hotbar_slots.Count; i++)
+        int usableSlots = Mathf.Min(hotbar_slots.Count, slots.Count);
+        for (int i = 0; i < usableSlots; i++)
         {
             BlockType type = hotbar_slots[i];
 
@@ -75,7 +79,8 @@ public class ScriptInventory : MonoBehaviour
             }
         }
 
-        playerAction.ChangeBlockType(hotbar_slots[0]);
+        if (usableSlots > 0)
+            ApplySelectedBlockType(hotbar_slots[0]);
 
         UpdateHotbarUI();
     }
@@ -84,15 +89,31 @@ public class ScriptInventory : MonoBehaviour
 
     void Update()
     {
+        if (hotbar_slots.Count == 0)
+            return;
+
         float scroll = Input.GetAxis("Mouse ScrollWheel");
 
         if (scroll != 0f)
         {
             int direction = scroll > 0 ? -1 : 1;
-            selectedSlot = (selectedSlot + direction + slots.Count) % slots.Count;
+            selectedSlot = (selectedSlot + direction + hotbar_slots.Count) % hotbar_slots.Count;
 
             UpdateHotbarUI();
-            updatePlayerAction();
+            ApplySelectedBlockType(hotbar_slots[selectedSlot]);
+        }
+
+        int maxDigits = Mathf.Min(9, hotbar_slots.Count);
+        for (int i = 0; i < maxDigits; i++)
+        {
+            KeyCode key = KeyCode.Alpha1 + i;
+            if (Input.GetKeyDown(key))
+            {
+                selectedSlot = i;
+                UpdateHotbarUI();
+                ApplySelectedBlockType(hotbar_slots[selectedSlot]);
+                break;
+            }
         }
     }
 
@@ -104,10 +125,13 @@ public class ScriptInventory : MonoBehaviour
         }
     }
 
-    void updatePlayerAction()
+    void ApplySelectedBlockType(BlockType type)
     {
-        if (selectedSlot < hotbar_slots.Count)
-            playerAction.ChangeBlockType(hotbar_slots[selectedSlot]);
+        if (playerAction != null)
+            playerAction.ChangeBlockType(type);
+
+        if (editorController != null)
+            editorController.ChangeBlockType(type);
     }
 
 
