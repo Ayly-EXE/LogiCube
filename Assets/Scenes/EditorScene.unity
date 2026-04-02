@@ -659,13 +659,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae4294961ef0149f980c520c7b4000dc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  cameraTransform: {fileID: 1478935583}
+  referenceBlock: {fileID: 1845954376}
+  placedBlocksRoot: {fileID: 0}
+  blockPrefabs: []
+  selectedBlock: 2
+  logBlockSelection: 1
   moveSpeed: 5
   flySpeed: 7
   lookSpeed: 2
-  gravity: -20
-  jumpHeight: 1.2
-  doubleTapDelay: 0.3
-  cameraTransform: {fileID: 1478935583}
+  sprintMultiplier: 2.5
+  maxBuildDistance: 12
+  buildMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  preventBuildWhenPointerOverUI: 0
+  saveKey: 286
+  saveFolderName: SavedStructures
+  saveFilePrefix: structure
 --- !u!143 &1011432603
 CharacterController:
   m_ObjectHideFlags: 0
@@ -1373,6 +1384,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   slotNormal: {fileID: 21300000, guid: 59b9ffaff015c430b8bd282fe433b1cc, type: 3}
   slotSelected: {fileID: 21300000, guid: a544bd62f33f1264b80259938dbc59d7, type: 3}
+  hotbar_slots: 01000000020000000300000004000000
   blockSpritesList:
   - type: 1
     sprite: {fileID: 21300000, guid: dd5ffafb28cf2f846ac2380770c19c2f, type: 3}
