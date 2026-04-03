@@ -2,10 +2,28 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 
+[System.Serializable]
+public class StructureBlockFileData
+{
+    public int type;
+    public int x;
+    public int y;
+    public int z;
+}
+
+[System.Serializable]
+public class StructureFileData
+{
+    public List<StructureBlockFileData> blocks = new();
+}
+
 public class ChunkSpawner : MonoBehaviour
 {
     public WorldManagerScript worldManager;
     public int viewDistanceInChunks = 1;
+    [Header("Trees")]
+    [Range(0, 100)] public int treeFrequencyPercent = 2;
+    [Min(1)] public int treeSpacing = 8;
 
     private Dictionary<Vector3Int, BlockType> placedBlocks = new();
     private HashSet<Vector3Int> removedBlocks = new();
@@ -14,10 +32,23 @@ public class ChunkSpawner : MonoBehaviour
     private Vector2Int currentPlayerChunk;
     private bool hasPlayerChunk;
     private int seed;
+    private bool treeTemplateLoaded;
+    private readonly List<TreeBlockData> treeBlocks = new();
+    private int treeMinX;
+    private int treeMaxX;
+    private int treeMinZ;
+    private int treeMaxZ;
+
+    private struct TreeBlockData
+    {
+        public Vector3Int offset;
+        public BlockType type;
+    }
 
     public WorldSaveData Initialize(WorldManagerScript manager, string savePath)
     {
         worldManager = manager;
+        LoadTreeTemplateIfNeeded();
         WorldSaveData save = LoadOrCreate(savePath);
         RefreshVisibleChunks(true);
         return save;
@@ -293,7 +324,118 @@ public class ChunkSpawner : MonoBehaviour
                     chunkBlocks[new Vector3Int(x, y, z)] = GetBlockTypeForHeight(y, height);
             }
 
+        AddTreesToChunk(chunkBlocks, startX, startZ, offset);
+
         return chunkBlocks;
+    }
+
+    private void LoadTreeTemplateIfNeeded()
+    {
+        if (treeTemplateLoaded)
+            return;
+
+        treeTemplateLoaded = true;
+        treeBlocks.Clear();
+
+        string path = Path.Combine(Application.dataPath, "SavedStructures", "tree.json");
+        if (!File.Exists(path))
+        {
+            Debug.LogWarning("ChunkSpawner: tree.json not found at " + path);
+            return;
+        }
+
+        StructureFileData file = JsonUtility.FromJson<StructureFileData>(File.ReadAllText(path));
+        if (file == null || file.blocks == null || file.blocks.Count == 0)
+        {
+            Debug.LogWarning("ChunkSpawner: tree.json is empty.");
+            return;
+        }
+
+        bool hasAny = false;
+
+        foreach (var b in file.blocks)
+        {
+            if (!System.Enum.IsDefined(typeof(BlockType), b.type))
+                continue;
+
+            BlockType type = (BlockType)b.type;
+            if (type == BlockType.Air)
+                continue;
+
+            Vector3Int offset = new Vector3Int(b.x, b.y, b.z);
+            treeBlocks.Add(new TreeBlockData { offset = offset, type = type });
+
+            if (!hasAny)
+            {
+                treeMinX = treeMaxX = offset.x;
+                treeMinZ = treeMaxZ = offset.z;
+                hasAny = true;
+            }
+            else
+            {
+                treeMinX = Mathf.Min(treeMinX, offset.x);
+                treeMaxX = Mathf.Max(treeMaxX, offset.x);
+                treeMinZ = Mathf.Min(treeMinZ, offset.z);
+                treeMaxZ = Mathf.Max(treeMaxZ, offset.z);
+            }
+        }
+
+        if (!hasAny)
+        {
+            treeBlocks.Clear();
+            Debug.LogWarning("ChunkSpawner: tree.json has no usable blocks.");
+        }
+    }
+
+    private void AddTreesToChunk(Dictionary<Vector3Int, BlockType> chunkBlocks, int startX, int startZ, Vector2 offset)
+    {
+        if (treeBlocks.Count == 0)
+            return;
+
+        int size = worldManager.generator.chunkSize;
+        int endX = startX + size - 1;
+        int endZ = startZ + size - 1;
+
+        int centerMinX = startX - treeMinX;
+        int centerMaxX = endX - treeMaxX;
+        int centerMinZ = startZ - treeMinZ;
+        int centerMaxZ = endZ - treeMaxZ;
+
+        if (centerMinX > centerMaxX || centerMinZ > centerMaxZ)
+            return;
+
+        for (int x = centerMinX; x <= centerMaxX; x++)
+            for (int z = centerMinZ; z <= centerMaxZ; z++)
+            {
+                int groundHeight = GetTerrainHeight(x, z, offset);
+                if (!ShouldPlaceTreeAt(x, z, groundHeight))
+                    continue;
+
+                PlaceTree(chunkBlocks, x, groundHeight, z);
+            }
+    }
+
+    private bool ShouldPlaceTreeAt(int x, int z, int groundHeight)
+    {
+        if (groundHeight <= 3) return false;
+        if (Mathf.Abs(x) % treeSpacing != 0 || Mathf.Abs(z) % treeSpacing != 0) return false;
+
+        int hash = Mathf.Abs(x * 17 + z * 31 + seed);
+        return (hash % 100) < treeFrequencyPercent;
+    }
+
+    private void PlaceTree(Dictionary<Vector3Int, BlockType> chunkBlocks, int centerX, int groundHeight, int centerZ)
+    {
+        foreach (var treeBlock in treeBlocks)
+        {
+            Vector3Int pos = new Vector3Int(
+                centerX + treeBlock.offset.x,
+                groundHeight + treeBlock.offset.y,
+                centerZ + treeBlock.offset.z
+            );
+
+            chunkBlocks[pos] = treeBlock.type;
+        }
     }
 
     private int GetTerrainHeight(int x, int z, Vector2 offset)

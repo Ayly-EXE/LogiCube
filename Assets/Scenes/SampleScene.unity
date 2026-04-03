@@ -8746,6 +8746,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   worldManager: {fileID: 1815888934}
   viewDistanceInChunks: 1
+  treeFrequencyPercent: 39
+  treeSpacing: 8
 --- !u!1 &1904945088
 GameObject:
   m_ObjectHideFlags: 0
