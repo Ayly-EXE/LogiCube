@@ -36,12 +36,20 @@ public class ChunkSpawner : MonoBehaviour
             };
         }
 
+        string directory = Path.GetDirectoryName(savePath);
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
+
         File.WriteAllText(savePath, JsonUtility.ToJson(save, true));
     }
 
     private WorldSaveData LoadOrCreate(string savePath)
     {
         WorldSaveData save;
+
+        string directory = Path.GetDirectoryName(savePath);
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
 
         if (!File.Exists(savePath))
             save = new WorldSaveData { seed = Random.Range(0, 999999) };

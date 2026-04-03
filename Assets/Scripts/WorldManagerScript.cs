@@ -29,6 +29,11 @@ public class BlockMaterialEntry
 
 public class WorldManagerScript : MonoBehaviour
 {
+    public static string CurrentWorldId { get; private set; }
+    public static string WorldsDirectory => Path.Combine(Application.persistentDataPath, "worlds");
+    private string SavePath => GetWorldFilePath(CurrentWorldId);
+    public bool IsWorldInitialized => worldInitialized;
+
     [Header("Références")]
     public WorldGenerator generator;
     public GameObject player;
@@ -41,7 +46,9 @@ public class WorldManagerScript : MonoBehaviour
 
     private Dictionary<Vector3Int, BlockType> blocks = new();
 
-    private string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
+    private bool worldInitialized;
+    private Vector3 startPlayerPosition;
+    private Quaternion startPlayerRotation;
 
     [Header("TNT")]
     public GameObject tntPrimedPrefab;
@@ -50,17 +57,116 @@ public class WorldManagerScript : MonoBehaviour
     [Header("VFX")]
     public ParticleSystem explosionPrefab;
 
+    public static void SelectWorld(string worldId)
+    {
+        CurrentWorldId = NormalizeWorldId(worldId);
+    }
+
+    public static bool IsValidWorldId(string worldId)
+    {
+        if (string.IsNullOrWhiteSpace(worldId))
+            return false;
+
+        foreach (char c in worldId)
+        {
+            if (char.IsLetterOrDigit(c))
+                continue;
+
+            if (c == '_' || c == '-')
+                continue;
+
+            return false;
+        }
+
+        return true;
+    }
+
+    public static string NormalizeWorldId(string worldId)
+    {
+        return worldId == null ? string.Empty : worldId.Trim();
+    }
+
+    public static List<string> GetAvailableWorldIds()
+    {
+        List<string> ids = new List<string>();
+        if (!Directory.Exists(WorldsDirectory))
+            return ids;
+
+        foreach (string path in Directory.GetFiles(WorldsDirectory, "*.json"))
+            ids.Add(Path.GetFileNameWithoutExtension(path));
+
+        ids.Sort(System.StringComparer.OrdinalIgnoreCase);
+        return ids;
+    }
+
+    public static string GetWorldFilePath(string worldId)
+    {
+        string safeId = IsValidWorldId(worldId) ? worldId : "default";
+        return Path.Combine(WorldsDirectory, safeId + ".json");
+    }
+
     void Start()
     {
         materialLookup.Clear();
         foreach (var entry in blockMaterials)
             materialLookup[entry.type] = entry.material;
 
-        var save = chunkSpawner.Initialize(this, SavePath);
-        Debug.Log(SavePath);
-        player.transform.position = save.player.position;
-        player.transform.rotation = save.player.rotation;
+        if (player != null)
+        {
+            startPlayerPosition = player.transform.position;
+            startPlayerRotation = player.transform.rotation;
+        }
+
+        if (string.IsNullOrWhiteSpace(CurrentWorldId))
+        {
+            SetGameplayEnabled(false);
+            return;
+        }
+
+        StartSelectedWorld();
     }
+
+    private void SetGameplayEnabled(bool enabled)
+    {
+        if (player != null)
+            player.SetActive(enabled);
+    }
+
+    public void StartSelectedWorld()
+    {
+        if (worldInitialized)
+            return;
+
+        if (!IsValidWorldId(CurrentWorldId))
+            return;
+
+        Directory.CreateDirectory(WorldsDirectory);
+        bool worldFileExists = File.Exists(SavePath);
+
+        var save = chunkSpawner.Initialize(this, SavePath);
+        Debug.Log("World file: " + SavePath);
+
+        if (player != null)
+        {
+            if (save.player != null)
+            {
+                player.transform.position = save.player.position;
+                player.transform.rotation = save.player.rotation;
+            }
+            else
+            {
+                player.transform.position = startPlayerPosition;
+                player.transform.rotation = startPlayerRotation;
+            }
+        }
+
+        worldInitialized = true;
+        SetGameplayEnabled(true);
+
+        if (!worldFileExists || save.player == null)
+            SaveWorld();
+    }
+
 
     public void PlaceBlock(Vector3 worldPos, BlockType type)
     {
@@ -110,12 +216,16 @@ public class WorldManagerScript : MonoBehaviour
 
     public void SaveWorld()
     {
+        if (!worldInitialized)
+            return;
+
         chunkSpawner.SaveWorld(SavePath, player);
     }
 
     void OnApplicationQuit()
     {
-        SaveWorld();
+        if (worldInitialized)
+            SaveWorld();
     }
 
     public Dictionary<Vector3Int, BlockType> Blocks => blocks;
