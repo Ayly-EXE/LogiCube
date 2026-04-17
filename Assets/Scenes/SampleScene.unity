@@ -1934,6 +1934,7 @@ GameObject:
   - component: {fileID: 963194227}
   - component: {fileID: 963194226}
   - component: {fileID: 963194231}
+  - component: {fileID: 963194232}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -2030,6 +2031,27 @@ MonoBehaviour:
   worldManager: {fileID: 1815888934}
   selectedBlock: 2
   playerController: {fileID: 1361358938}
+  bow: {fileID: 963194232}
+--- !u!114 &963194232
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 963194225}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 468a24b52a9c4215b4acc17c860cc437, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  equipKey: 98
+  bowPrefab: {fileID: 919132149155446097, guid: 1e4101eec797f1a43aa5d7dfc0685a93, type: 3}
+  worldManager: {fileID: 1815888934}
+  playerController: {fileID: 1361358938}
+  bowLocalPosition: {x: 0.32, y: -0.32, z: 0.62}
+  bowYRotation: -90
+  bowLocalScale: {x: 0.35, y: 0.35, z: 0.35}
+  bowPullOffset: {x: -0.1, y: 0, z: -0.07}
 --- !u!1 &970468993
 GameObject:
   m_ObjectHideFlags: 0
