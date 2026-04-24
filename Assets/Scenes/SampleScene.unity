@@ -8736,6 +8736,8 @@ MonoBehaviour:
     material: {fileID: 2100000, guid: ce0954b78089e03499e0e1d0c589dc78, type: 2}
   - type: 4
     material: {fileID: 2100000, guid: bd840392892f647bcb3e9dd9e7be2b36, type: 2}
+  - type: 5
+    material: {fileID: 2100000, guid: 7ab2ddc136f2a4b32aac030575977817, type: 2}
   tntPrimedPrefab: {fileID: 4083437359705976096, guid: e7d2920cbf2c64161b4f3951526b43a5, type: 3}
   tntFuseDuration: 2.5
   explosionPrefab: {fileID: 1466154608}

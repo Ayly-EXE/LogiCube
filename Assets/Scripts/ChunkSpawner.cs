@@ -21,6 +21,10 @@ public class ChunkSpawner : MonoBehaviour
 {
     public WorldManagerScript worldManager;
     public int viewDistanceInChunks = 1;
+    [Header("Performance")]
+    [Min(1)] public int chunkLoadsPerFrame = 1;
+    [Min(1)] public int chunkRebuildsPerFrame = 1;
+
     [Header("Trees")]
     [Range(0, 100)] public int treeFrequencyPercent = 2;
     [Min(1)] public int treeSpacing = 8;
@@ -28,7 +32,13 @@ public class ChunkSpawner : MonoBehaviour
     private Dictionary<Vector3Int, BlockType> placedBlocks = new();
     private HashSet<Vector3Int> removedBlocks = new();
     private Dictionary<Vector2Int, GameObject> chunkGOs = new();
+    private Dictionary<Vector2Int, HashSet<Vector3Int>> loadedChunkBlocks = new();
     private HashSet<Vector2Int> loadedChunks = new();
+    private HashSet<Vector2Int> wantedChunks = new();
+    private Queue<Vector2Int> pendingChunkLoads = new();
+    private HashSet<Vector2Int> queuedChunkLoads = new();
+    private Queue<Vector2Int> pendingChunkRebuilds = new();
+    private HashSet<Vector2Int> queuedChunkRebuilds = new();
     private Vector2Int currentPlayerChunk;
     private bool hasPlayerChunk;
     private int seed;
@@ -38,6 +48,14 @@ public class ChunkSpawner : MonoBehaviour
     private int treeMaxX;
     private int treeMinZ;
     private int treeMaxZ;
+    private static readonly Vector2Int[] RebuildOffsets =
+    {
+        Vector2Int.zero,
+        Vector2Int.right,
+        Vector2Int.left,
+        new Vector2Int(0, 1),
+        new Vector2Int(0, -1)
+    };
 
     private struct TreeBlockData
     {
@@ -98,7 +116,12 @@ public class ChunkSpawner : MonoBehaviour
             removedBlocks.Add(b.position);
 
         foreach (var b in save.placedBlocks)
-            placedBlocks[b.position] = System.Enum.Parse<BlockType>(b.blockType);
+        {
+            if (!System.Enum.TryParse(b.blockType, out BlockType type))
+                continue;
+
+            placedBlocks[b.position] = type;
+        }
 
         return save;
     }
@@ -114,8 +137,10 @@ public class ChunkSpawner : MonoBehaviour
 
         removedBlocks.Remove(position);
 
-        EnsureChunkLoaded(GetChunkCoord(position));
-        RebuildLoadedChunks();
+        Vector2Int chunkCoord = GetChunkCoord(position);
+        EnsureChunkLoaded(chunkCoord);
+        AddLoadedBlock(chunkCoord, position);
+        RebuildChunkAndNeighborsNow(chunkCoord);
     }
 
     public void OnBlockDestroyed(Vector3Int position)
@@ -126,6 +151,10 @@ public class ChunkSpawner : MonoBehaviour
             removedBlocks.Add(position);
         else
             removedBlocks.Remove(position);
+
+        Vector2Int chunkCoord = GetChunkCoord(position);
+        RemoveLoadedBlock(chunkCoord, position);
+        RebuildChunkAndNeighborsNow(chunkCoord);
     }
 
     public void RebuildChunk()
@@ -159,6 +188,7 @@ public class ChunkSpawner : MonoBehaviour
             return;
 
         RefreshVisibleChunks();
+        ProcessChunkQueues();
     }
 
     public void RefreshVisibleChunks(bool force = false)
@@ -170,10 +200,12 @@ public class ChunkSpawner : MonoBehaviour
         currentPlayerChunk = playerChunk;
         hasPlayerChunk = true;
 
-        var wantedChunks = new HashSet<Vector2Int>();
+        var newWantedChunks = new HashSet<Vector2Int>();
         for (int x = -viewDistanceInChunks; x <= viewDistanceInChunks; x++)
             for (int z = -viewDistanceInChunks; z <= viewDistanceInChunks; z++)
-                wantedChunks.Add(new Vector2Int(playerChunk.x + x, playerChunk.y + z));
+                newWantedChunks.Add(new Vector2Int(playerChunk.x + x, playerChunk.y + z));
+
+        wantedChunks = newWantedChunks;
 
         var chunksToUnload = new List<Vector2Int>();
         foreach (var chunkCoord in loadedChunks)
@@ -183,11 +215,36 @@ public class ChunkSpawner : MonoBehaviour
         foreach (var chunkCoord in chunksToUnload)
             UnloadChunk(chunkCoord);
 
+        List<Vector2Int> chunksToLoad = new List<Vector2Int>();
         foreach (var chunkCoord in wantedChunks)
-            if (!loadedChunks.Contains(chunkCoord))
-                LoadChunk(chunkCoord);
+        {
+            if (loadedChunks.Contains(chunkCoord))
+                continue;
 
-        RebuildLoadedChunks();
+            chunksToLoad.Add(chunkCoord);
+        }
+
+        chunksToLoad.Sort((a, b) =>
+        {
+            int distanceA = GetChunkDistanceSquared(a, playerChunk);
+            int distanceB = GetChunkDistanceSquared(b, playerChunk);
+            return distanceA.CompareTo(distanceB);
+        });
+
+        if (force)
+        {
+            foreach (var chunkCoord in chunksToLoad)
+            {
+                LoadChunk(chunkCoord);
+                QueueChunkAndNeighborsForRebuild(chunkCoord);
+            }
+
+            RebuildAllQueuedChunksNow();
+            return;
+        }
+
+        foreach (var chunkCoord in chunksToLoad)
+            QueueChunkLoad(chunkCoord);
     }
 
     public void EnsureChunkLoaded(Vector2Int chunkCoord)
@@ -204,6 +261,41 @@ public class ChunkSpawner : MonoBehaviour
             RebuildChunk(chunkCoord);
     }
 
+    private void ProcessChunkQueues()
+    {
+        for (int i = 0; i < chunkLoadsPerFrame; i++)
+        {
+            if (pendingChunkLoads.Count == 0)
+                break;
+
+            Vector2Int chunkCoord = pendingChunkLoads.Dequeue();
+            queuedChunkLoads.Remove(chunkCoord);
+
+            if (loadedChunks.Contains(chunkCoord))
+                continue;
+
+            if (!wantedChunks.Contains(chunkCoord))
+                continue;
+
+            LoadChunk(chunkCoord);
+            QueueChunkAndNeighborsForRebuild(chunkCoord);
+        }
+
+        for (int i = 0; i < chunkRebuildsPerFrame; i++)
+        {
+            if (pendingChunkRebuilds.Count == 0)
+                break;
+
+            Vector2Int chunkCoord = pendingChunkRebuilds.Dequeue();
+            queuedChunkRebuilds.Remove(chunkCoord);
+
+            if (!loadedChunks.Contains(chunkCoord))
+                continue;
+
+            RebuildChunk(chunkCoord);
+        }
+    }
+
     public Vector2Int GetChunkCoord(Vector3Int blockPos)
     {
         int half = worldManager.generator.chunkSize / 2;
@@ -216,15 +308,22 @@ public class ChunkSpawner : MonoBehaviour
     {
         int height = GetTerrainHeight(position.x, position.z, GetSeedOffset());
 
-        if (position.y < 0 || position.y > height)
+        if (position.y < 0)
             return BlockType.Air;
 
-        return GetBlockTypeForHeight(position.y, height);
+        if (position.y <= height)
+            return GetBlockTypeForHeight(position.y, height);
+
+        if (worldManager.generator.Water.IsWaterBlock(position.y, height))
+            return BlockType.Water;
+
+        return BlockType.Air;
     }
 
     private void LoadChunk(Vector2Int chunkCoord)
     {
         var generatedBlocks = GenerateChunkBlocks(chunkCoord);
+        HashSet<Vector3Int> chunkPositions = new HashSet<Vector3Int>();
 
         foreach (var (pos, type) in generatedBlocks)
         {
@@ -235,12 +334,20 @@ public class ChunkSpawner : MonoBehaviour
                 worldManager.Blocks[pos] = placedType;
             else
                 worldManager.Blocks[pos] = type;
+
+            chunkPositions.Add(pos);
         }
 
         foreach (var (pos, type) in placedBlocks)
+        {
             if (GetChunkCoord(pos) == chunkCoord)
+            {
                 worldManager.Blocks[pos] = type;
+                chunkPositions.Add(pos);
+            }
+        }
 
+        loadedChunkBlocks[chunkCoord] = chunkPositions;
         loadedChunks.Add(chunkCoord);
     }
 
@@ -248,13 +355,13 @@ public class ChunkSpawner : MonoBehaviour
     {
         loadedChunks.Remove(chunkCoord);
 
-        var positionsToRemove = new List<Vector3Int>();
-        foreach (var pos in worldManager.Blocks.Keys)
-            if (GetChunkCoord(pos) == chunkCoord)
-                positionsToRemove.Add(pos);
+        if (loadedChunkBlocks.TryGetValue(chunkCoord, out var positionsToRemove))
+        {
+            foreach (var pos in positionsToRemove)
+                worldManager.Blocks.Remove(pos);
 
-        foreach (var pos in positionsToRemove)
-            worldManager.Blocks.Remove(pos);
+            loadedChunkBlocks.Remove(chunkCoord);
+        }
 
         if (chunkGOs.TryGetValue(chunkCoord, out var chunkGO))
         {
@@ -267,9 +374,14 @@ public class ChunkSpawner : MonoBehaviour
     {
         var visibleFaces = new Dictionary<Vector3Int, List<FaceDirection>>();
 
-        foreach (var (pos, type) in worldManager.Blocks)
+        if (!loadedChunkBlocks.TryGetValue(chunkCoord, out var chunkPositions))
+            return;
+
+        foreach (var pos in chunkPositions)
         {
-            if (GetChunkCoord(pos) != chunkCoord) continue;
+            if (!worldManager.Blocks.TryGetValue(pos, out var type))
+                continue;
+
             if (!type.IsSolid()) continue;
 
             var faces = FaceCuller.GetVisibleFaces(pos, worldManager.Blocks);
@@ -299,6 +411,85 @@ public class ChunkSpawner : MonoBehaviour
         chunkGO.GetComponent<MeshCollider>().sharedMesh = mesh;
     }
 
+    private void AddLoadedBlock(Vector2Int chunkCoord, Vector3Int position)
+    {
+        if (!loadedChunkBlocks.TryGetValue(chunkCoord, out var chunkPositions))
+        {
+            chunkPositions = new HashSet<Vector3Int>();
+            loadedChunkBlocks[chunkCoord] = chunkPositions;
+        }
+
+        chunkPositions.Add(position);
+    }
+
+    private void RemoveLoadedBlock(Vector2Int chunkCoord, Vector3Int position)
+    {
+        if (!loadedChunkBlocks.TryGetValue(chunkCoord, out var chunkPositions))
+            return;
+
+        chunkPositions.Remove(position);
+    }
+
+    private void QueueChunkLoad(Vector2Int chunkCoord)
+    {
+        if (loadedChunks.Contains(chunkCoord))
+            return;
+
+        if (!queuedChunkLoads.Add(chunkCoord))
+            return;
+
+        pendingChunkLoads.Enqueue(chunkCoord);
+    }
+
+    private void QueueChunkRebuild(Vector2Int chunkCoord)
+    {
+        if (!queuedChunkRebuilds.Add(chunkCoord))
+            return;
+
+        pendingChunkRebuilds.Enqueue(chunkCoord);
+    }
+
+    private void QueueChunkAndNeighborsForRebuild(Vector2Int centerChunk)
+    {
+        foreach (Vector2Int offset in RebuildOffsets)
+        {
+            QueueChunkRebuild(centerChunk + offset);
+        }
+    }
+
+    private void RebuildChunkAndNeighborsNow(Vector2Int centerChunk)
+    {
+        foreach (Vector2Int offset in RebuildOffsets)
+        {
+            Vector2Int chunkCoord = centerChunk + offset;
+            if (!loadedChunks.Contains(chunkCoord))
+                continue;
+
+            RebuildChunk(chunkCoord);
+        }
+    }
+
+    private void RebuildAllQueuedChunksNow()
+    {
+        while (pendingChunkRebuilds.Count > 0)
+        {
+            Vector2Int chunkCoord = pendingChunkRebuilds.Dequeue();
+            queuedChunkRebuilds.Remove(chunkCoord);
+
+            if (!loadedChunks.Contains(chunkCoord))
+                continue;
+
+            RebuildChunk(chunkCoord);
+        }
+    }
+
+    private int GetChunkDistanceSquared(Vector2Int a, Vector2Int b)
+    {
+        int dx = a.x - b.x;
+        int dz = a.y - b.y;
+        return dx * dx + dz * dz;
+    }
+
     private Vector2Int GetPlayerChunk()
     {
         if (worldManager.player == null)
@@ -322,11 +513,13 @@ public class ChunkSpawner : MonoBehaviour
 
                 for (int y = 0; y <= height; y++)
                     chunkBlocks[new Vector3Int(x, y, z)] = GetBlockTypeForHeight(y, height);
+
+                worldManager.generator.Water.AddWaterColumn(chunkBlocks, x, z, height);
             }
 
         AddTreesToChunk(chunkBlocks, startX, startZ, offset);
 
-        return chunkBlocks;
+        return GetBlockTypeForHeight(position.y, height);
     }
 
     private void LoadTreeTemplateIfNeeded()
@@ -418,6 +611,7 @@ public class ChunkSpawner : MonoBehaviour
     private bool ShouldPlaceTreeAt(int x, int z, int groundHeight)
     {
         if (groundHeight <= 3) return false;
+        if (worldManager.generator.Water.IsUnderWater(groundHeight)) return false;
         if (Mathf.Abs(x) % treeSpacing != 0 || Mathf.Abs(z) % treeSpacing != 0) return false;
 
         int hash = Mathf.Abs(x * 17 + z * 31 + seed);

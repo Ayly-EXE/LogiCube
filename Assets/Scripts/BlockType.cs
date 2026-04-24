@@ -6,6 +6,7 @@ public enum BlockType
     Grass = 3,  // herbe
 
     Tnt = 4,
+    Water = 5,
 }
 
 public static class BlockTypeExtensions

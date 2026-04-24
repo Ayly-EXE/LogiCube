@@ -32,12 +32,6 @@ public class Bow : MonoBehaviour
 
     void Start()
     {
-        if (bowPrefab == null)
-        {
-            Debug.LogWarning("Bow: assigne Bow.fbx dans Bow Prefab.");
-            return;
-        }
-
         bowVisual = Instantiate(bowPrefab, transform).transform;
         bowVisual.localPosition = bowLocalPosition;
         bowVisual.localEulerAngles = new Vector3(0f, bowYRotation, 0f);

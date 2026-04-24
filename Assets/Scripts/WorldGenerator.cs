@@ -6,6 +6,8 @@ public class WorldGenerator : MonoBehaviour
     public int chunkSize = 32;
     public float noiseScale = 0.1f;
     public int terrainHeight = 10;
+    public WaterGeneration waterGeneration = new();
+    public WaterGeneration Water => waterGeneration ??= new();
 
     public Dictionary<Vector3Int, BlockType> Generate(int seed)
     {
@@ -39,6 +41,8 @@ public class WorldGenerator : MonoBehaviour
                 
                     blocks[new Vector3Int(x, y, z)] = type;
                 }
+
+                Water.AddWaterColumn(blocks, x, z, height);
             }
 
         return blocks;
