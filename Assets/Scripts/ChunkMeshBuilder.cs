@@ -1,41 +1,28 @@
-// ╔══════════════════════════════════════════════════════════════╗
-// ║  MESH BUILDER                                                ║
-// ║                                                              ║
-// ║  Théorie :                                                   ║
-// ║  Un Mesh Unity = 3 tableaux :                                ║
-// ║    vertices  → les points 3D dans l'espace                   ║
-// ║    triangles → des groupes de 3 indices qui forment          ║
-// ║                des triangles                                 ║
-// ║    uvs       → les coordonnées de texture                    ║
-// ║                                                              ║
-// ║  Pour chaque face visible (reçue du FaceCuller), on ajoute   ║
-// ║  4 points et 2 triangles au mesh.                            ║
-// ║                                                              ║
-// ║     3 ── 2                                                   ║
-// ║     │  ╲ │   triangle 1 : 0-1-2                              ║
-// ║     0 ── 1   triangle 2 : 0-2-3                              ║
-// ╚══════════════════════════════════════════════════════════════╝
-
 using System.Collections.Generic;
 using UnityEngine;
 
 public static class ChunkMeshBuilder
 {
-    // Les 4 coins de chaque face (dans l'espace local du bloc)
+    private const float WaterSurfaceHeight = 0.86f;
+
     private static readonly Vector3[][] FaceVertices =
     {
-        // Top
         new[] { new Vector3(0,1,1), new Vector3(1,1,1), new Vector3(1,1,0), new Vector3(0,1,0) },
-        // Bottom
         new[] { new Vector3(0,0,0), new Vector3(1,0,0), new Vector3(1,0,1), new Vector3(0,0,1) },
-        // Right
         new[] { new Vector3(1,0,0), new Vector3(1,1,0), new Vector3(1,1,1), new Vector3(1,0,1) },
-        // Left
         new[] { new Vector3(0,0,1), new Vector3(0,1,1), new Vector3(0,1,0), new Vector3(0,0,0) },
-        // Front
         new[] { new Vector3(1,0,1), new Vector3(1,1,1), new Vector3(0,1,1), new Vector3(0,0,1) },
-        // Back
         new[] { new Vector3(0,0,0), new Vector3(0,1,0), new Vector3(1,1,0), new Vector3(1,0,0) },
+    };
+
+    private static readonly Vector3[][] WaterFaceVertices =
+    {
+        new[] { new Vector3(0,WaterSurfaceHeight,1), new Vector3(1,WaterSurfaceHeight,1), new Vector3(1,WaterSurfaceHeight,0), new Vector3(0,WaterSurfaceHeight,0) },
+        new[] { new Vector3(0,0,0), new Vector3(1,0,0), new Vector3(1,0,1), new Vector3(0,0,1) },
+        new[] { new Vector3(1,0,0), new Vector3(1,WaterSurfaceHeight,0), new Vector3(1,WaterSurfaceHeight,1), new Vector3(1,0,1) },
+        new[] { new Vector3(0,0,1), new Vector3(0,WaterSurfaceHeight,1), new Vector3(0,WaterSurfaceHeight,0), new Vector3(0,0,0) },
+        new[] { new Vector3(1,0,1), new Vector3(1,WaterSurfaceHeight,1), new Vector3(0,WaterSurfaceHeight,1), new Vector3(0,0,1) },
+        new[] { new Vector3(0,0,0), new Vector3(0,WaterSurfaceHeight,0), new Vector3(1,WaterSurfaceHeight,0), new Vector3(1,0,0) },
     };
 
     private static readonly Vector2[] FaceUVs =
@@ -55,12 +42,12 @@ public static class ChunkMeshBuilder
 
         foreach (var (blockPos, faces) in visibleFacesPerBlock)
         {
-            var type = blocks[blockPos];
+            BlockType type = blocks[blockPos];
             if (!trisByType.ContainsKey(type))
                 trisByType[type] = new List<int>();
 
             foreach (var face in faces)
-                AddFace(face, blockPos, vertices, trisByType[type], uvs);
+                AddFace(type, face, blockPos, vertices, trisByType[type], uvs);
         }
 
         var mesh = new Mesh();
@@ -77,19 +64,21 @@ public static class ChunkMeshBuilder
             types[i++] = type;
         }
 
-        mesh.RecalculateNormals(); 
+        mesh.RecalculateNormals();
         subMeshOrder = types;
         return mesh;
     }
 
-
     private static void AddFace(
-        FaceDirection direction, Vector3Int blockPos,
+        BlockType type, FaceDirection direction, Vector3Int blockPos,
         List<Vector3> vertices, List<int> triangles, List<Vector2> uvs)
     {
         int start = vertices.Count;
+        Vector3[] faceVertices = type.IsWater()
+            ? WaterFaceVertices[(int)direction]
+            : FaceVertices[(int)direction];
 
-        foreach (var v in FaceVertices[(int)direction])
+        foreach (var v in faceVertices)
             vertices.Add(blockPos + v);
 
         triangles.Add(start + 0); triangles.Add(start + 1); triangles.Add(start + 2);

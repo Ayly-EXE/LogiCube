@@ -8605,6 +8605,12 @@ MonoBehaviour:
   chunkSize: 32
   noiseScale: 0.05
   terrainHeight: 17
+  continentNoiseScale: 0.008
+  continentHeight: 10
+  detailStrength: 0.3
+  terrainBaseOffset: -1
+  waterGeneration:
+    waterLevel: 8
 --- !u!1 &1791316660
 GameObject:
   m_ObjectHideFlags: 0

@@ -4,7 +4,7 @@ using UnityEngine;
 [System.Serializable]
 public class WaterGeneration
 {
-    public int waterLevel = 4;
+    public int waterLevel = 8;
 
     public bool IsWaterBlock(int y, int terrainHeight)
     {

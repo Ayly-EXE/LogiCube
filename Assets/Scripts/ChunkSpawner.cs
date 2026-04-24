@@ -19,6 +19,8 @@ public class StructureFileData
 
 public class ChunkSpawner : MonoBehaviour
 {
+    private const string WaterChunkObjectName = "Water";
+
     public WorldManagerScript worldManager;
     public int viewDistanceInChunks = 1;
     [Header("Performance")]
@@ -373,6 +375,7 @@ public class ChunkSpawner : MonoBehaviour
     private void RebuildChunk(Vector2Int chunkCoord)
     {
         var visibleFaces = new Dictionary<Vector3Int, List<FaceDirection>>();
+        var waterVisibleFaces = new Dictionary<Vector3Int, List<FaceDirection>>();
 
         if (!loadedChunkBlocks.TryGetValue(chunkCoord, out var chunkPositions))
             return;
@@ -382,14 +385,20 @@ public class ChunkSpawner : MonoBehaviour
             if (!worldManager.Blocks.TryGetValue(pos, out var type))
                 continue;
 
-            if (!type.IsSolid()) continue;
+            if (!type.IsRenderable()) continue;
 
             var faces = FaceCuller.GetVisibleFaces(pos, worldManager.Blocks);
             if (faces.Count > 0)
-                visibleFaces[pos] = faces;
+            {
+                if (type.IsWater())
+                    waterVisibleFaces[pos] = faces;
+                else
+                    visibleFaces[pos] = faces;
+            }
         }
 
         Mesh mesh = ChunkMeshBuilder.Build(visibleFaces, worldManager.Blocks, out var subMeshOrder);
+        Mesh waterMesh = ChunkMeshBuilder.Build(waterVisibleFaces, worldManager.Blocks, out var waterSubMeshOrder);
 
         if (!chunkGOs.TryGetValue(chunkCoord, out var chunkGO) || chunkGO == null)
         {
@@ -401,14 +410,59 @@ public class ChunkSpawner : MonoBehaviour
             chunkGOs[chunkCoord] = chunkGO;
         }
 
-        chunkGO.GetComponent<MeshFilter>().mesh = mesh;
+        SetChunkMesh(chunkGO, mesh, subMeshOrder, true);
+        SetWaterMesh(chunkGO, waterMesh, waterSubMeshOrder);
+    }
+
+    private void SetChunkMesh(GameObject target, Mesh mesh, BlockType[] subMeshOrder, bool useCollider)
+    {
+        target.GetComponent<MeshFilter>().mesh = mesh;
 
         var materials = new Material[subMeshOrder.Length];
         for (int i = 0; i < subMeshOrder.Length; i++)
             materials[i] = worldManager.GetMaterial(subMeshOrder[i]);
 
-        chunkGO.GetComponent<MeshRenderer>().materials = materials;
-        chunkGO.GetComponent<MeshCollider>().sharedMesh = mesh;
+        target.GetComponent<MeshRenderer>().materials = materials;
+
+        if (useCollider)
+            target.GetComponent<MeshCollider>().sharedMesh = mesh;
+    }
+
+    private void SetWaterMesh(GameObject chunkGO, Mesh mesh, BlockType[] subMeshOrder)
+    {
+        Transform existingWater = chunkGO.transform.Find(WaterChunkObjectName);
+        if (subMeshOrder.Length == 0)
+        {
+            if (existingWater != null)
+                Destroy(existingWater.gameObject);
+
+            return;
+        }
+
+        GameObject waterGO;
+        if (existingWater == null)
+        {
+            waterGO = new GameObject(WaterChunkObjectName);
+            waterGO.transform.SetParent(chunkGO.transform, false);
+            waterGO.AddComponent<MeshFilter>();
+            waterGO.AddComponent<MeshRenderer>();
+
+            MeshRenderer waterRenderer = waterGO.GetComponent<MeshRenderer>();
+            waterRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            waterRenderer.receiveShadows = false;
+        }
+        else
+        {
+            waterGO = existingWater.gameObject;
+        }
+
+        waterGO.GetComponent<MeshFilter>().mesh = mesh;
+
+        var materials = new Material[subMeshOrder.Length];
+        for (int i = 0; i < subMeshOrder.Length; i++)
+            materials[i] = worldManager.GetMaterial(subMeshOrder[i]);
+
+        waterGO.GetComponent<MeshRenderer>().materials = materials;
     }
 
     private void AddLoadedBlock(Vector2Int chunkCoord, Vector3Int position)
@@ -519,7 +573,7 @@ public class ChunkSpawner : MonoBehaviour
 
         AddTreesToChunk(chunkBlocks, startX, startZ, offset);
 
-        return GetBlockTypeForHeight(position.y, height);
+        return chunkBlocks;
     }
 
     private void LoadTreeTemplateIfNeeded()
@@ -634,9 +688,7 @@ public class ChunkSpawner : MonoBehaviour
 
     private int GetTerrainHeight(int x, int z, Vector2 offset)
     {
-        float nx = (x + offset.x) * worldManager.generator.noiseScale;
-        float nz = (z + offset.y) * worldManager.generator.noiseScale;
-        return Mathf.FloorToInt(Mathf.PerlinNoise(nx, nz) * worldManager.generator.terrainHeight);
+        return worldManager.generator.GetTerrainHeight(x, z, offset);
     }
 
     private BlockType GetBlockTypeForHeight(int y, int height)
